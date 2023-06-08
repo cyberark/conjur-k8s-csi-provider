@@ -103,4 +103,9 @@ pipeline {
       }
     }
   }
+  post {
+    always {
+      releaseInfraPoolAgent()
+    }
+  }
 }
