@@ -15,6 +15,8 @@ if (params.MODE == "PROMOTE") {
     // Any version number updates from sourceVersion to targetVersion occur here
     // Any publishing of targetVersion artifacts occur here
     // Anything added to assetDirectory will be attached to the Github Release
+
+    //Note: assetDirectory is on the infrapool agent, not the local Jenkins agent.
   }
   return
 }
