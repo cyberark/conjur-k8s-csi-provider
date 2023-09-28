@@ -73,17 +73,25 @@ pipeline {
         }
       }
     }
+
     stage('Stage running on Atlantis Jenkins Agent Container'){
         steps {
             sh 'scripts/in-container.sh'
         }
     }
+
     stage('Stage on AWS Instance') {
       steps {
         script {
           // Run script from repo on an AWS instance managed by infrapool
           infrapool.agentSh 'scripts/on-instance.sh'
         }
+      }
+    }
+
+    stage('Run tests'){
+      steps {
+        sh 'bin/test'
       }
     }
 
