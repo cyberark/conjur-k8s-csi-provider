@@ -1,1 +1,1 @@
-# conjur-template
+# Conjur Provider for Secrets Store CSI Driver
