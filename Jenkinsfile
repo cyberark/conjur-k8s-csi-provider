@@ -91,7 +91,9 @@ pipeline {
 
     stage('Run tests'){
       steps {
-        sh 'bin/test'
+        script {
+          infrapool.agentSh 'bin/test'
+        }
       }
     }
 

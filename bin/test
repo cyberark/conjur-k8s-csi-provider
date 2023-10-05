@@ -1,1 +1,35 @@
 #!/usr/bin/env bash
+
+set -eox pipefail
+
+junit_output_file="junit.output"
+. bin/build_utils
+
+function main() {
+  retrieve_cyberark_ca_cert
+  build_docker_ut_image
+  run_unit_tests
+}
+
+function build_docker_ut_image() {
+  echo "Building unit test image..."
+  docker build \
+    -f Dockerfile.test \
+    -t conjur-k8s-csi-provider-test-runner:latest \
+    .
+}
+
+function run_unit_tests() {
+  echo "Running unit tests..."
+  docker run --rm \
+    -v "$PWD/test/":/conjur-k8s-csi-provider/test/ \
+    conjur-k8s-csi-provider-test-runner:latest \
+      -coverprofile="./test/c.out.tmp" \
+      ./... \
+      | tee -a "./test/$junit_output_file" && \
+        cat ./test/c.out.tmp | grep -v "_dev.go" > ./test/c.out && \
+        rm -f ./test/c.out.tmp
+  echo "Unit test exit status: $?"
+}
+
+main
