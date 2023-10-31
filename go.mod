@@ -6,6 +6,7 @@ require (
 	github.com/cyberark/conjur-api-go v0.11.1
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/grpc v1.58.2
+	gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/secrets-store-csi-driver v1.3.4
 )
 
@@ -26,5 +27,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
