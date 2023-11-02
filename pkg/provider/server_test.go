@@ -12,7 +12,9 @@ import (
 	"sigs.k8s.io/secrets-store-csi-driver/provider/v1alpha1"
 )
 
-type mockListener struct{}
+type mockListener struct {
+	close func() error
+}
 
 func (l mockListener) Accept() (net.Conn, error) {
 	return nil, nil
@@ -23,7 +25,7 @@ func (l mockListener) Addr() net.Addr {
 }
 
 func (l mockListener) Close() error {
-	return nil
+	return l.close()
 }
 
 type mockGrpc struct {
@@ -48,47 +50,12 @@ var stopped bool
 
 func TestNewServerWithDeps(t *testing.T) {
 	testCases := []struct {
-		description     string
-		grpcFactory     func(opt ...grpc.ServerOption) grpcServer
-		listenerFactory func(string, string) (net.Listener, error)
-		mountFunc       func(context.Context, *v1alpha1.MountRequest) (*v1alpha1.MountResponse, error)
-		versionFunc     func(context.Context, *v1alpha1.VersionRequest) (*v1alpha1.VersionResponse, error)
-		assertions      func(*testing.T, *ConjurProviderServer, error)
+		description string
+		grpcFactory func(opt ...grpc.ServerOption) grpcServer
+		mountFunc   func(context.Context, *v1alpha1.MountRequest) (*v1alpha1.MountResponse, error)
+		versionFunc func(context.Context, *v1alpha1.VersionRequest) (*v1alpha1.VersionResponse, error)
+		assertions  func(*testing.T, *ConjurProviderServer)
 	}{
-		{
-			description: "listener factory fails",
-			grpcFactory: func(opt ...grpc.ServerOption) grpcServer {
-				return mockGrpc{
-					stop:            func() {},
-					registerService: func(sd *grpc.ServiceDesc, ss any) {},
-					serve:           func(lis net.Listener) error { return nil },
-				}
-			},
-			listenerFactory: func(string, string) (net.Listener, error) {
-				return nil, errors.New("listener msg")
-			},
-			assertions: func(t *testing.T, c *ConjurProviderServer, err error) {
-				assert.Equal(t, "failed to start listener: listener msg", err.Error())
-			},
-		},
-		{
-			description: "gRPC server fails on listener",
-			grpcFactory: func(opt ...grpc.ServerOption) grpcServer {
-				return mockGrpc{
-					stop:            func() {},
-					registerService: func(sd *grpc.ServiceDesc, ss any) {},
-					serve: func(lis net.Listener) error {
-						return errors.New("serve msg")
-					},
-				}
-			},
-			listenerFactory: func(string, string) (net.Listener, error) {
-				return mockListener{}, nil
-			},
-			assertions: func(t *testing.T, c *ConjurProviderServer, err error) {
-				assert.Equal(t, "failed to serve gRPC on listener: serve msg", err.Error())
-			},
-		},
 		{
 			description: "provider server calls custom mount and version functions",
 			grpcFactory: func(opt ...grpc.ServerOption) grpcServer {
@@ -98,17 +65,14 @@ func TestNewServerWithDeps(t *testing.T) {
 					serve:           func(lis net.Listener) error { return nil },
 				}
 			},
-			listenerFactory: func(string, string) (net.Listener, error) {
-				return mockListener{}, nil
-			},
 			mountFunc: func(context.Context, *v1alpha1.MountRequest) (*v1alpha1.MountResponse, error) {
 				return nil, fmt.Errorf("custom mount error")
 			},
 			versionFunc: func(context.Context, *v1alpha1.VersionRequest) (*v1alpha1.VersionResponse, error) {
 				return nil, fmt.Errorf("custom version error")
 			},
-			assertions: func(t *testing.T, c *ConjurProviderServer, err error) {
-				assert.Nil(t, err)
+			assertions: func(t *testing.T, c *ConjurProviderServer) {
+				var err error
 
 				_, err = c.Mount(context.TODO(), &v1alpha1.MountRequest{
 					Attributes: "{}",
@@ -124,23 +88,96 @@ func TestNewServerWithDeps(t *testing.T) {
 				assert.Contains(t, err.Error(), "custom version error")
 			},
 		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			p := newServerWithDeps(
+				tc.grpcFactory,
+				tc.mountFunc,
+				tc.versionFunc,
+			)
+			tc.assertions(t, p)
+		})
+	}
+}
+
+func TestStart(t *testing.T) {
+	testCases := []struct {
+		description     string
+		serveError      error
+		listenerFactory func(string, string) (net.Listener, error)
+		assertions      func(*testing.T, error)
+	}{
 		{
-			description: "stopping the gRPC server",
-			grpcFactory: func(opt ...grpc.ServerOption) grpcServer {
-				return mockGrpc{
-					stop:            func() { stopped = true },
-					registerService: func(sd *grpc.ServiceDesc, ss any) {},
-					serve:           func(lis net.Listener) error { return nil },
-				}
-			},
+			description: "serving gRPC fails",
+			serveError:  errors.New("serve msg"),
 			listenerFactory: func(string, string) (net.Listener, error) {
 				return mockListener{}, nil
 			},
-			assertions: func(t *testing.T, c *ConjurProviderServer, err error) {
+			assertions: func(t *testing.T, err error) {
+				assert.Equal(t, "serve msg", err.Error())
+			},
+		},
+		{
+			description: "listener factory fails",
+			serveError:  nil,
+			listenerFactory: func(string, string) (net.Listener, error) {
+				return nil, errors.New("listener msg")
+			},
+			assertions: func(t *testing.T, err error) {
+				assert.Equal(t, "failed to start listener: listener msg", err.Error())
+			},
+		},
+		{
+			description: "happy path",
+			serveError:  nil,
+			listenerFactory: func(string, string) (net.Listener, error) {
+				return mockListener{}, nil
+			},
+			assertions: func(t *testing.T, err error) {
 				assert.Nil(t, err)
+			},
+		},
+	}
 
-				stopped = false
-				c.Stop()
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			grpcFactory := func(opt ...grpc.ServerOption) grpcServer {
+				return mockGrpc{
+					stop:            func() {},
+					registerService: func(sd *grpc.ServiceDesc, ss any) {},
+					serve: func(lis net.Listener) error {
+						return tc.serveError
+					},
+				}
+			}
+
+			p := newServerWithDeps(grpcFactory, nil, nil)
+			err := p.startWithDeps(tc.listenerFactory, "")
+			tc.assertions(t, err)
+		})
+	}
+}
+
+func TestStop(t *testing.T) {
+	testCases := []struct {
+		description string
+		closeErr    error
+		assertions  func(*testing.T, error)
+	}{
+		{
+			description: "listener close fails",
+			closeErr:    errors.New("close msg"),
+			assertions: func(t *testing.T, err error) {
+				assert.Equal(t, "close msg", err.Error())
+				assert.True(t, stopped)
+			},
+		},
+		{
+			description: "happy path",
+			assertions: func(t *testing.T, err error) {
+				assert.Nil(t, err)
 				assert.True(t, stopped)
 			},
 		},
@@ -148,13 +185,26 @@ func TestNewServerWithDeps(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			p, err := NewServerWithDeps(
-				tc.grpcFactory,
-				tc.listenerFactory,
-				tc.mountFunc,
-				tc.versionFunc,
-			)
-			tc.assertions(t, p, err)
+			grpcFactory := func(opt ...grpc.ServerOption) grpcServer {
+				return mockGrpc{
+					stop:            func() { stopped = true },
+					registerService: func(sd *grpc.ServiceDesc, ss any) {},
+					serve:           func(lis net.Listener) error { return nil },
+				}
+			}
+			listenerFactory := func(string, string) (net.Listener, error) {
+				return mockListener{
+					close: func() error { return tc.closeErr },
+				}, nil
+			}
+
+			p := newServerWithDeps(grpcFactory, nil, nil)
+			err := p.startWithDeps(listenerFactory, "")
+			assert.Nil(t, err)
+			stopped = false
+
+			err = p.Stop()
+			tc.assertions(t, err)
 		})
 	}
 }
