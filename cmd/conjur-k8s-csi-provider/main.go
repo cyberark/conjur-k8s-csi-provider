@@ -13,10 +13,11 @@ func main() {
 	var s *provider.ConjurProviderServer
 	var err error
 
+	s = provider.NewServer()
 	go func() {
-		s, err = provider.NewServer()
+		err = s.Start()
 		if err != nil {
-			log.Fatalf("Failed to create CSI provider server %v", err)
+			log.Fatalf("Failed to start CSI provider server: %v", err)
 		}
 	}()
 
@@ -24,5 +25,8 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 
-	s.Stop()
+	err = s.Stop()
+	if err != nil {
+		log.Fatalf("Failed to stop the CSI provider server: %v", err)
+	}
 }
