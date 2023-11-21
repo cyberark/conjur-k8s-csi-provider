@@ -1,6 +1,30 @@
 # Contributing
 
-For general contribution and community guidelines, please see the [community repo](https://github.com/cyberark/community).
+For general contribution and community guidelines, please see the
+[community repo](https://github.com/cyberark/community).
+
+## Prerequisites
+
+1. [git](https://git-scm.com/downloads) to manage source code
+2. [Docker](https://docs.docker.com/engine/installation) to manage dependencies
+   and runtime environments
+3. [Go 1.21.0+](https://go.dev/doc/install) installed
+
+## Testing
+
+This project includes table-driven unit tests for each component. To run them:
+```sh
+./bin/test
+```
+
+This script generates a coverage profile in the `test/` directory. To generate a
+more consumable HTML coverage profile:
+```sh
+go tool cover -html ./test/c.out -o ./test/c.html
+open ./test/c.html
+```
+
+## Pull Request Workflow
 
 1. [Fork the project](https://help.github.com/en/github/getting-started-with-github/fork-a-repo)
 2. [Clone your fork](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository)
