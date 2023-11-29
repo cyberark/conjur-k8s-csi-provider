@@ -13,25 +13,25 @@ import (
 	"github.com/cyberark/conjur-api-go/conjurapi"
 )
 
-// ConjurConfig holds the configfuration needed to communicate with Conjur
+// Client holds the configuration needed to communicate with Conjur
 //
 // Example:
 //
-//	config := ConjurClient{
+//	client := Client{
 //	    BaseURL:  "https://conjur-conjur-oss.conjur.svc.cluster.local",
 //	    AuthnID:  "authn-jwt/kube",
 //	    Account:  "default",
 //	    Identity: "host/host1",
 //	}
-type ConjurClient struct {
+type Client struct {
 	BaseURL  string
 	AuthnID  string
 	Account  string
 	Identity string
 }
 
-func NewConjurClient(baseURL, authnID, account, identity string) *ConjurClient {
-	return &ConjurClient{
+func NewClient(baseURL, authnID, account, identity string) *Client {
+	return &Client{
 		BaseURL:  baseURL,
 		AuthnID:  authnID,
 		Account:  account,
@@ -39,7 +39,7 @@ func NewConjurClient(baseURL, authnID, account, identity string) *ConjurClient {
 	}
 }
 
-func (c *ConjurClient) authenticate(token string) ([]byte, error) {
+func (c *Client) authenticate(token string) ([]byte, error) {
 	requestURL, err := url.Parse(c.BaseURL)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (c *ConjurClient) authenticate(token string) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-func (c *ConjurClient) GetSecrets(token string, secretIds []string) (map[string][]byte, error) {
+func (c *Client) GetSecrets(token string, secretIds []string) (map[string][]byte, error) {
 	authenticatedToken, err := c.authenticate(token)
 	if err != nil {
 		return nil, err
