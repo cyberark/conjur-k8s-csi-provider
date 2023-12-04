@@ -1,0 +1,91 @@
+# Helm unit test to be used with the 'helm-unittest' Helm plugin.
+# Reference: https://github.com/quintush/helm-unittest/blob/master/DOCUMENT.md
+
+suite: test conjur-k8s-csi-provider
+
+templates:
+  - provider.yaml
+
+defaults: &defaultRequired
+  providerServer.name: test-name
+  providerServer.image.repo: test-image
+  providerServer.image.tag: 0.0.0
+  providerServer.image.pullPolicy: Never
+
+tests:
+  #=======================================================================
+  - it: succeeds if all required values are provided
+  #=======================================================================
+    set:
+      <<: *defaultRequired
+
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: DaemonSet
+      - equal:
+          path: metadata.name
+          value: test-name
+      - equal:
+          path: spec.template.metadata.labels.name
+          value: test-name
+      - equal:
+          path: spec.selector.matchLabels.name
+          value: test-name
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: test-image:0.0.0
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Never
+
+  #=======================================================================
+  - it: uses default values if none provided
+  #=======================================================================
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: DaemonSet
+      - equal:
+          path: metadata.name
+          value: conjur-k8s-csi-provider
+      - equal:
+          path: spec.template.metadata.labels.name
+          value: conjur-k8s-csi-provider
+      - equal:
+          path: spec.selector.matchLabels.name
+          value: conjur-k8s-csi-provider
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: cyberark/conjur-k8s-csi-provider:latest
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+
+  #=======================================================================
+  - it: allows setting labels and annotations on the provider pod
+  #=======================================================================
+    set:
+      <<: *defaultRequired
+      labels: { key: labelValue }
+      annotations: { key: annotationValue }
+
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: DaemonSet
+      - equal:
+          path: metadata.labels.key
+          value: labelValue
+      - equal:
+          path: spec.template.metadata.labels.key
+          value: labelValue
+      - equal:
+          path: metadata.annotations.key
+          value: annotationValue
+      - equal:
+          path: spec.template.metadata.annotations.key
+          value: annotationValue

@@ -89,10 +89,21 @@ pipeline {
       }
     }
 
+    stage('Helm tests'){
+      parallel {
+        stage('Helm unittest') {
+          steps { script { infrapool.agentSh 'bin/test_helm_unit' } }
+        }
+        stage('Helm lint') {
+          steps { script { infrapool.agentSh 'bin/test_helm_schema' } }
+        }
+      }
+    }
+
     stage('Run tests'){
       steps {
         script {
-          infrapool.agentSh 'bin/test'
+          infrapool.agentSh 'bin/test_unit'
         }
       }
     }

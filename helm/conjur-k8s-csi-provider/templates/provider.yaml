@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Values.providerServer.name }}
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.labels }}
+  labels:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- with .Values.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ .Values.providerServer.name }}
+{{- with .Values.labels }}
+{{ toYaml . | indent 6 }}
+{{- end }}
+  template:
+    metadata:
+      labels:
+        name: {{ .Values.providerServer.name }}
+{{- with .Values.labels }}
+{{ toYaml . | indent 8 }}
+{{- end }}
+{{- with .Values.annotations }}
+      annotations:
+{{ toYaml . | indent 8 }}
+{{- end }}
+    spec:
+      containers:
+      - name: conjur-provider
+        image: {{ .Values.providerServer.image.repo }}:{{ .Values.providerServer.image.tag }}
+        imagePullPolicy: {{ .Values.providerServer.image.pullPolicy }}
+        args: [ "-socket", "/etc/kubernetes/secrets-store-csi-providers/conjur.socket" ]
+        volumeMounts:
+        - name: provider-volume
+          mountPath: "/etc/kubernetes/secrets-store-csi-providers"
+      volumes:
+      - name: provider-volume
+        hostPath:
+          path: "/etc/kubernetes/secrets-store-csi-providers"

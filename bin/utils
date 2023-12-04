@@ -29,3 +29,11 @@ function retrieve_cyberark_ca_cert() {
 function repo_root() {
   git rev-parse --show-toplevel
 }
+
+function build_helm_test_image() {
+  echo "Building helm test image..."
+  docker build \
+    -f Dockerfile.helm \
+    -t conjur-k8s-csi-provider-helm-test-runner:latest \
+    .
+}
