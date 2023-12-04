@@ -18,38 +18,21 @@ const saTokensKey = "csi.storage.k8s.io/serviceAccount.tokens"
 // Config contains information parses from a Mount request that is required for
 // authenticating with Conjur and retrieving secrets.
 type Config struct {
+	// Custom attributes attached to a given MountRequest
+	attributes map[string]string
 	// ServiceAccount JWT token used to authenticate to Conjur
 	token string
 	// Desired permissions on generated secret files
 	permissions os.FileMode
-	// Conjur client for secret retrieval
-	conjur *conjur.Client
-	// Secrets spec relating file paths to Conjur secrets
+	// Secrets spec relating Conjur secret IDs to file paths
 	secrets map[string]string
 }
 
 // Mount implements a volume mount operation in the Conjur provider
 func Mount(ctx context.Context, req *v1alpha1.MountRequest) (*v1alpha1.MountResponse, error) {
-	cfg, err := parse(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse mount request: %w", err)
-	}
-
-	return &v1alpha1.MountResponse{
-		ObjectVersion: []*v1alpha1.ObjectVersion{
-			{
-				Id:      "someId",
-				Version: "1",
-			},
-		},
-		Files: []*v1alpha1.File{
-			{
-				Path:     "somePath.txt",
-				Mode:     int32(cfg.permissions),
-				Contents: []byte("someContent"),
-			},
-		},
-	}, nil
+	return mountWithDeps(
+		ctx, req, conjur.NewClient,
+	)
 }
 
 // Version returns Conjur provider runtime details
@@ -61,11 +44,56 @@ func Version(ctx context.Context, req *v1alpha1.VersionRequest) (*v1alpha1.Versi
 	}, nil
 }
 
+func mountWithDeps(
+	ctx context.Context,
+	req *v1alpha1.MountRequest,
+	conjurFactory conjur.ClientFactory,
+) (*v1alpha1.MountResponse, error) {
+	cfg, err := parse(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse mount request: %w", err)
+	}
+
+	secretIDs := []string{}
+	for secretID, _ := range cfg.secrets {
+		secretIDs = append(secretIDs, secretID)
+	}
+	conjClient := conjurFactory(
+		cfg.attributes["applianceUrl"],
+		cfg.attributes["authnId"],
+		cfg.attributes["account"],
+		cfg.attributes["identity"],
+	)
+	secrets, err := conjClient.GetSecrets(cfg.token, secretIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Conjur secrets: %w", err)
+	}
+
+	objectVersion := []*v1alpha1.ObjectVersion{}
+	files := []*v1alpha1.File{}
+
+	for secretID, value := range secrets {
+		objectVersion = append(objectVersion, &v1alpha1.ObjectVersion{
+			Id:      secretID,
+			Version: "1",
+		})
+		files = append(files, &v1alpha1.File{
+			Path:     cfg.secrets[secretID],
+			Mode:     int32(cfg.permissions),
+			Contents: value,
+		})
+	}
+
+	return &v1alpha1.MountResponse{
+		ObjectVersion: objectVersion,
+		Files:         files,
+	}, nil
+}
+
 func parse(req *v1alpha1.MountRequest) (*Config, error) {
 	var attributes map[string]string
 	var tokens map[string]map[string]string
 	var token string
-	var conjurClient *conjur.Client
 	var secretsStr string
 	var secrets map[string]string
 	var permissions os.FileMode
@@ -95,12 +123,6 @@ func parse(req *v1alpha1.MountRequest) (*Config, error) {
 	if len(missingKeys) > 0 {
 		return nil, fmt.Errorf("missing required Conjur config attributes: %q", missingKeys)
 	}
-	conjurClient = conjur.NewClient(
-		attributes["applianceUrl"],
-		attributes["authnId"],
-		attributes["account"],
-		attributes["identity"],
-	)
 
 	secretsStr = attributes["secrets"]
 	if secretsStr == "" {
@@ -118,9 +140,9 @@ func parse(req *v1alpha1.MountRequest) (*Config, error) {
 	}
 
 	return &Config{
+		attributes:  attributes,
 		token:       token,
 		permissions: permissions,
-		conjur:      conjurClient,
 		secrets:     secrets,
 	}, nil
 }
@@ -143,7 +165,7 @@ func parseSecrets(s string) (map[string]string, error) {
 	returned := make(map[string]string, len(intermediate))
 	for _, i := range intermediate {
 		for k, v := range i {
-			returned[k] = v
+			returned[v] = k
 		}
 	}
 

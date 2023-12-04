@@ -13,25 +13,36 @@ import (
 	"github.com/cyberark/conjur-api-go/conjurapi"
 )
 
-// Client holds the configuration needed to communicate with Conjur
+// ClientFactory returns an implementation of the Client interface given the
+// proper configuration values.
+type ClientFactory func(baseURL, authnID, account, identity string) Client
+
+// Client is an interface to Conjur's API functions required by our CSI Provider.
+type Client interface {
+	GetSecrets(jwt string, secretIds []string) (map[string][]byte, error)
+}
+
+// Config holds the configuration needed to communicate with Conjur and
+// implements the Client interface.
 //
 // Example:
 //
-//	client := Client{
+//	config := Config{
 //	    BaseURL:  "https://conjur-conjur-oss.conjur.svc.cluster.local",
 //	    AuthnID:  "authn-jwt/kube",
 //	    Account:  "default",
 //	    Identity: "host/host1",
 //	}
-type Client struct {
+type Config struct {
 	BaseURL  string
 	AuthnID  string
 	Account  string
 	Identity string
 }
 
-func NewClient(baseURL, authnID, account, identity string) *Client {
-	return &Client{
+// NewClient returns a new Conjur client.
+func NewClient(baseURL, authnID, account, identity string) Client {
+	return &Config{
 		BaseURL:  baseURL,
 		AuthnID:  authnID,
 		Account:  account,
@@ -39,7 +50,7 @@ func NewClient(baseURL, authnID, account, identity string) *Client {
 	}
 }
 
-func (c *Client) authenticate(token string) ([]byte, error) {
+func (c *Config) authenticate(jwt string) ([]byte, error) {
 	requestURL, err := url.Parse(c.BaseURL)
 	if err != nil {
 		return nil, err
@@ -48,7 +59,7 @@ func (c *Client) authenticate(token string) ([]byte, error) {
 	requestURL.Path = path.Join(requestURL.Path, c.AuthnID, c.Account, url.PathEscape(c.Identity), "authenticate")
 
 	data := url.Values{}
-	data.Set("jwt", token)
+	data.Set("jwt", jwt)
 
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -72,8 +83,10 @@ func (c *Client) authenticate(token string) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-func (c *Client) GetSecrets(token string, secretIds []string) (map[string][]byte, error) {
-	authenticatedToken, err := c.authenticate(token)
+// GetSecrets authenticates with Conjur using the provided JWT and returns
+// requested secret data.
+func (c *Config) GetSecrets(jwt string, secretIds []string) (map[string][]byte, error) {
+	authenticatedToken, err := c.authenticate(jwt)
 	if err != nil {
 		return nil, err
 	}

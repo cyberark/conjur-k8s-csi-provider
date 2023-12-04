@@ -2,18 +2,30 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
+	"github.com/cyberark/conjur-k8s-csi-provider/pkg/conjur"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/secrets-store-csi-driver/provider/v1alpha1"
 )
 
+type mockConjurClient struct {
+	resp map[string][]byte
+	err  error
+}
+
+func (c *mockConjurClient) GetSecrets(jwt string, secretIds []string) (map[string][]byte, error) {
+	return c.resp, c.err
+}
+
 func TestMount(t *testing.T) {
 	testCases := []struct {
-		description string
-		req         *v1alpha1.MountRequest
-		assertions  func(*testing.T, *v1alpha1.MountResponse, error)
+		description   string
+		req           *v1alpha1.MountRequest
+		conjurFactory conjur.ClientFactory
+		assertions    func(*testing.T, *v1alpha1.MountResponse, error)
 	}{
 		{
 			description: "throws error decoding invalid attributes",
@@ -87,22 +99,70 @@ func TestMount(t *testing.T) {
 			},
 		},
 		{
+			description: "throws error when conjur client fails",
+			req: &v1alpha1.MountRequest{
+				Attributes: `{"secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Permission: "777",
+				TargetPath: "/some/path",
+			},
+			conjurFactory: func(baseURL, authnID, account, identity string) conjur.Client {
+				return &mockConjurClient{
+					resp: nil,
+					err:  errors.New("conjur error getting secrets"),
+				}
+			},
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+				assert.Nil(t, resp)
+				assert.Contains(t, err.Error(), "failed to get Conjur secrets")
+			},
+		},
+		{
 			description: "happy path",
 			req: &v1alpha1.MountRequest{
 				Attributes: `{"secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 				Permission: "777",
 				TargetPath: "/some/path",
 			},
+			conjurFactory: func(baseURL, authnID, account, identity string) conjur.Client {
+				return &mockConjurClient{
+					resp: map[string][]byte{
+						"conjur/path/A": []byte("contentA"),
+						"conjur/path/B": []byte("contentB"),
+					},
+					err: nil,
+				}
+			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, err)
-				assert.Equal(t, int32(777), resp.Files[0].Mode)
+
+				assert.Len(t, resp.ObjectVersion, 2)
+				assert.Len(t, resp.Files, 2)
+
+				assert.Contains(t, resp.ObjectVersion, &v1alpha1.ObjectVersion{
+					Id:      "conjur/path/A",
+					Version: "1",
+				})
+				assert.Contains(t, resp.ObjectVersion, &v1alpha1.ObjectVersion{
+					Id:      "conjur/path/B",
+					Version: "1",
+				})
+				assert.Contains(t, resp.Files, &v1alpha1.File{
+					Path:     "file/path/A",
+					Mode:     int32(777),
+					Contents: []byte("contentA"),
+				})
+				assert.Contains(t, resp.Files, &v1alpha1.File{
+					Path:     "file/path/B",
+					Mode:     int32(777),
+					Contents: []byte("contentB"),
+				})
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			resp, err := Mount(context.TODO(), tc.req)
+			resp, err := mountWithDeps(context.TODO(), tc.req, tc.conjurFactory)
 			tc.assertions(t, resp, err)
 		})
 	}
