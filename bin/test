@@ -21,6 +21,10 @@ function build_docker_ut_image() {
 
 function run_unit_tests() {
   echo "Running unit tests..."
+
+  mkdir -p "$(repo_root)/test"
+  touch "$(repo_root)/test/$junit_output_file"
+
   docker run --rm \
     -v "$PWD/test/":/conjur-k8s-csi-provider/test/ \
     conjur-k8s-csi-provider-test-runner:latest \
@@ -29,7 +33,6 @@ function run_unit_tests() {
       | tee -a "./test/$junit_output_file" && \
         cat ./test/c.out.tmp | grep -v "_dev.go" > ./test/c.out && \
         rm -f ./test/c.out.tmp
-  echo "Unit test exit status: $?"
 }
 
 main
