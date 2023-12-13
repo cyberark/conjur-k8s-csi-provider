@@ -3,7 +3,7 @@
 set -eox pipefail
 
 junit_output_file="junit.output"
-. bin/build_utils
+. bin/utils
 
 function main() {
   retrieve_cyberark_ca_cert

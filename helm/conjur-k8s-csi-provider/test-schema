@@ -1,0 +1,127 @@
+#!/bin/bash
+
+# This script tests the restrictions on chart values as defined in the
+# Helm chart's 'values.schema.json' file.
+#
+# This test uses 'helm lint ...' instead of 'helm unittest ...' because the
+# Helm unittest plugin is apparently agnostic to schema restrictions defined
+# in 'values.schema.json'. For example, when required chart settings are not
+# provided, Helm unittest does not capture this as a schema violation, but
+# instead results in a vague null pointer error in Helm. For this reason,
+# Helm unittest is not well suited for negative schema test scenarios.
+#
+# Requirements:
+#   - Helm v3.5.3 or later
+
+set +x
+dirname "$0"
+
+# Execute from the parent (chart) directory as required to run 'helm lint ...'
+cd "$(dirname "$0")"
+
+source ./utils.sh
+
+# Default testing values for required chart values
+readonly DEFAULT_PROVIDER_NAME_SETTING='providerServer.name=conjur-k8s-csi-provider'
+readonly DEFAULT_PROVIDER_IMAGE_SETTING='providerServer.image.repo=cyberark/conjur-k8s-csi-provider'
+readonly DEFAULT_PROVIDER_TAG_SETTING='providerServer.image.tag=latest'
+readonly DEFAULT_PROVIDER_PULL_POLICY_SETTING='providerServer.image.pullPolicy=IfNotPresent'
+readonly DEFAULT_PROVIDER_SA_NAME_SETTING='providerServer.serviceAccount.name=default'
+readonly DEFAULT_PROVIDER_SA_CREATE_SETTING='providerServer.serviceAccount.create=false'
+
+# Global test state
+num_passed=0
+num_failed=0
+test_failed=false
+
+function provider_name_test() {
+    helm lint . --strict \
+        --set "providerServer.name=$1" \
+        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
+        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
+        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
+        --set "$DEFAULT_PROVIDER_SA_NAME_SETTING" \
+        --set "$DEFAULT_PROVIDER_SA_CREATE_SETTING"
+}
+
+function provider_image_test() {
+    helm lint . --strict \
+        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
+        --set "providerServer.image.repo=$1" \
+        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
+        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
+        --set "$DEFAULT_PROVIDER_SA_NAME_SETTING" \
+        --set "$DEFAULT_PROVIDER_SA_CREATE_SETTING"
+}
+
+function provider_tag_test() {
+    helm lint . --strict \
+        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
+        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
+        --set "providerServer.image.tag=$1" \
+        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
+        --set "$DEFAULT_PROVIDER_SA_NAME_SETTING" \
+        --set "$DEFAULT_PROVIDER_SA_CREATE_SETTING"
+}
+
+function provider_pull_policy_test() {
+    helm lint . --strict \
+        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
+        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
+        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
+        --set "providerServer.image.pullPolicy=$1" \
+        --set "$DEFAULT_PROVIDER_SA_NAME_SETTING" \
+        --set "$DEFAULT_PROVIDER_SA_CREATE_SETTING"
+}
+
+function main() {
+    banner $BOLD "Running Helm schema tests for chart \"conjur-config-cluster-prep\""
+    check_helm_version
+
+    announce "Valid provider server name is accepted"
+    provider_name_test "a-valid-name"
+    update_results "$?"
+
+    announce "Null-string provider server name is rejected"
+    provider_name_test ""
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "Valid provider server image is accepted"
+    provider_image_test "imagerepo/imagename"
+    update_results "$?"
+
+    announce "Null-string provider server image is rejected"
+    provider_image_test ""
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "Valid provider server version is accepted"
+    provider_tag_test "1.2.3"
+    update_results "$?"
+
+    announce "Null-string provider server version is rejected"
+    provider_tag_test ""
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "Invalid provider server version is rejected"
+    provider_tag_test "vFour"
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "Valid provider server image pull policy is accepted"
+    provider_pull_policy_test "Always"
+    update_results "$?"
+
+    announce "Invalid provider server image pull policy is accepted"
+    provider_pull_policy_test "OnlyIfLeapYear"
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "Null-string provider server version is rejected"
+    provider_pull_policy_test ""
+    update_results "$?" "$EXPECT_FAILURE"
+
+    display_final_results
+    if [ "$num_failed" -ne 0 ]; then
+        exit 1
+    fi
+}
+
+main "$@"

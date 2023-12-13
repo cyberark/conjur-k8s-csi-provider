@@ -1,0 +1,48 @@
+{
+    "$schema": "http://json-schema.org/schema",
+    "required": [
+      "providerServer"
+    ],
+    "properties": {
+      "providerServer": {
+        "required": [
+          "name",
+          "image"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "image": {
+            "required": [
+              "repo",
+              "tag",
+              "pullPolicy"
+            ],
+            "properties": {
+              "repo": {
+                "type": "string",
+                "minLength": 1
+              },
+              "tag": {
+                "type": ["string", "number"],
+                "minLength": 1,
+                "pattern": "(^\\d+(\\.\\d+){0,2}|latest)$"
+              },
+              "pullPolicy": {
+                "type": "string",
+                "enum": ["Always", "IfNotPresent", "Never"]
+              }
+            }
+          }
+        }
+      },
+      "labels": {
+        "type": "object"
+      },
+      "annotations": {
+        "type": "object"
+      }
+    }
+}

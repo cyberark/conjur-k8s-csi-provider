@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -eox pipefail
+
+. bin/utils
+build_helm_test_image
+
+echo "Running helm unit tests..."
+docker run --rm \
+  -v "$PWD/helm/":/helm/ \
+  conjur-k8s-csi-provider-helm-test-runner:latest \
+    helm unittest /helm/conjur-k8s-csi-provider

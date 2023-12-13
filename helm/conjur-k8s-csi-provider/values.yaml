@@ -1,0 +1,11 @@
+# Values for conjur-k8s-csi-provider. All missing values must be supplied by the user.
+
+providerServer:
+  name: conjur-k8s-csi-provider
+  image:
+    repo: cyberark/conjur-k8s-csi-provider
+    tag: latest
+    pullPolicy: IfNotPresent
+
+labels: {}
+annotations: {}
