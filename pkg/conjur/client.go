@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
@@ -56,7 +55,12 @@ func (c *Config) authenticate(jwt string) ([]byte, error) {
 		return nil, err
 	}
 
-	requestURL.Path = path.Join(requestURL.Path, c.AuthnID, c.Account, url.PathEscape(c.Identity), "authenticate")
+	requestURL = requestURL.JoinPath(
+		c.AuthnID,
+		c.Account,
+		url.PathEscape(c.Identity),
+		"authenticate",
+	)
 
 	data := url.Values{}
 	data.Set("jwt", jwt)
@@ -67,7 +71,11 @@ func (c *Config) authenticate(jwt string) ([]byte, error) {
 
 	client := &http.Client{Transport: transport}
 
-	req, err := http.NewRequest("POST", requestURL.String(), bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequest(
+		"POST",
+		requestURL.String(),
+		bytes.NewBufferString(data.Encode()),
+	)
 	if err != nil {
 		return nil, err
 	}
