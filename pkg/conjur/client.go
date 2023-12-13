@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -80,7 +80,11 @@ func (c *Config) authenticate(jwt string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	return ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("request failed with status code %d", resp.StatusCode)
+	}
+
+	return io.ReadAll(resp.Body)
 }
 
 // GetSecrets authenticates with Conjur using the provided JWT and returns
