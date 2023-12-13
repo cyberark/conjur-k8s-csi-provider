@@ -107,7 +107,12 @@ func (c *Config) GetSecrets(jwt string, secretIds []string) (map[string][]byte, 
 	if err != nil {
 		return nil, err
 	}
-	conjur.SetHttpClient(&http.Client{})
+
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: transport}
+	conjur.SetHttpClient(client)
 
 	secretValuesByID := map[string][]byte{}
 	secretValuesByFullID, err := conjur.RetrieveBatchSecretsSafe(secretIds)
