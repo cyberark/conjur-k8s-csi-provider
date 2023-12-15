@@ -64,13 +64,13 @@ func TestMount(t *testing.T) {
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
-				assert.Contains(t, err.Error(), `missing required Conjur config attributes: ["account" "identity"]`)
+				assert.Contains(t, err.Error(), `missing required Conjur config attributes: ["account" "identity" "sslCertificate"]`)
 			},
 		},
 		{
 			description: "throws error when secrets attribute not included or empty",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"secrets":"","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"secrets":"","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
@@ -80,7 +80,7 @@ func TestMount(t *testing.T) {
 		{
 			description: "throws error when secrets attribute improperly formatted",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"secrets":"invalid","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"secrets":"invalid","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
@@ -90,7 +90,7 @@ func TestMount(t *testing.T) {
 		{
 			description: "throws error decoding invalid file permissions",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 				Permission: "abc",
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
@@ -101,11 +101,11 @@ func TestMount(t *testing.T) {
 		{
 			description: "throws error when conjur client fails",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 				Permission: "777",
 				TargetPath: "/some/path",
 			},
-			conjurFactory: func(baseURL, authnID, account, identity string) conjur.Client {
+			conjurFactory: func(baseURL, authnID, account, identity, sslCert string) conjur.Client {
 				return &mockConjurClient{
 					resp: nil,
 					err:  errors.New("conjur error getting secrets"),
@@ -119,11 +119,11 @@ func TestMount(t *testing.T) {
 		{
 			description: "happy path",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 				Permission: "777",
 				TargetPath: "/some/path",
 			},
-			conjurFactory: func(baseURL, authnID, account, identity string) conjur.Client {
+			conjurFactory: func(baseURL, authnID, account, identity, sslCert string) conjur.Client {
 				return &mockConjurClient{
 					resp: map[string][]byte{
 						"conjur/path/A": []byte("contentA"),

@@ -167,6 +167,10 @@ which injects secrets into Kubernetes environments via
          - "relative/path/fileA.txt": "db-credentials/url"
          - "relative/path/fileB.txt": "db-credentials/username"
          - "relative/path/fileC.txt": "db-credentials/password"
+       sslCertificate: |
+         -----BEGIN CERTIFICATE-----
+         MIIDhDCCAmy...njemCrVXIWw==
+         -----END CERTIFICATE-----
    ```
 
    See the [`SecretProviderClass` configuration table](#secretproviderclass) for
@@ -214,6 +218,7 @@ The following table lists the configurable parameters on the Conjur Provider's
 | `spec.parameters.authnId` | Type and service ID of desired Conjur authenticator | `authn-jwt/service-id` |
 | `spec.parameters.identity` | Conjur identity used during authentication and authorization | `botApp` |
 | `spec.parameters.secrets` | Multiline string describing map of relative filepaths to Conjur variable IDs | <pre>- "relative/path/fileA.txt": "conjur/path/varA"<br>- "relative/path/fileB.txt": "conjur/path/varB"</pre> |
+| `spec.parameters.sslCertificate` | Conjur Appliance certificate | <pre>-----BEGIN CERTIFICATE-----<br>MIIDhDCCAmy...njemCrVXIWw==<br>-----END CERTIFICATE----- |
 
 ## Contributing
 
