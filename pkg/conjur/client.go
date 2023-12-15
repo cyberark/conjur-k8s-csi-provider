@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
@@ -56,7 +55,12 @@ func (c *Config) authenticate(jwt string) ([]byte, error) {
 		return nil, err
 	}
 
-	requestURL.Path = path.Join(requestURL.Path, c.AuthnID, c.Account, url.PathEscape(c.Identity), "authenticate")
+	requestURL = requestURL.JoinPath(
+		c.AuthnID,
+		c.Account,
+		url.PathEscape(c.Identity),
+		"authenticate",
+	)
 
 	data := url.Values{}
 	data.Set("jwt", jwt)
@@ -67,7 +71,11 @@ func (c *Config) authenticate(jwt string) ([]byte, error) {
 
 	client := &http.Client{Transport: transport}
 
-	req, err := http.NewRequest("POST", requestURL.String(), bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequest(
+		"POST",
+		requestURL.String(),
+		bytes.NewBufferString(data.Encode()),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +88,11 @@ func (c *Config) authenticate(jwt string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	return ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("request failed with status code %d", resp.StatusCode)
+	}
+
+	return io.ReadAll(resp.Body)
 }
 
 // GetSecrets authenticates with Conjur using the provided JWT and returns
@@ -95,7 +107,12 @@ func (c *Config) GetSecrets(jwt string, secretIds []string) (map[string][]byte, 
 	if err != nil {
 		return nil, err
 	}
-	conjur.SetHttpClient(&http.Client{})
+
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: transport}
+	conjur.SetHttpClient(client)
 
 	secretValuesByID := map[string][]byte{}
 	secretValuesByFullID, err := conjur.RetrieveBatchSecretsSafe(secretIds)
