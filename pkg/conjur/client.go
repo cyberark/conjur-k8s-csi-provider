@@ -3,6 +3,7 @@ package conjur
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 
 // ClientFactory returns an implementation of the Client interface given the
 // proper configuration values.
-type ClientFactory func(baseURL, authnID, account, identity string) Client
+type ClientFactory func(baseURL, authnID, account, identity, sslCert string) Client
 
 // Client is an interface to Conjur's API functions required by our CSI Provider.
 type Client interface {
@@ -37,15 +38,17 @@ type Config struct {
 	AuthnID  string
 	Account  string
 	Identity string
+	SSLCert  string
 }
 
 // NewClient returns a new Conjur client.
-func NewClient(baseURL, authnID, account, identity string) Client {
+func NewClient(baseURL, authnID, account, identity, sslCert string) Client {
 	return &Config{
 		BaseURL:  baseURL,
 		AuthnID:  authnID,
 		Account:  account,
 		Identity: identity,
+		SSLCert:  sslCert,
 	}
 }
 
@@ -65,10 +68,15 @@ func (c *Config) authenticate(jwt string) ([]byte, error) {
 	data := url.Values{}
 	data.Set("jwt", jwt)
 
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	pool := x509.NewCertPool()
+	ok := pool.AppendCertsFromPEM([]byte(c.SSLCert))
+	if !ok {
+		return nil, fmt.Errorf("can't append Conjur SSL cert")
 	}
 
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{RootCAs: pool},
+	}
 	client := &http.Client{Transport: transport}
 
 	req, err := http.NewRequest(
@@ -103,16 +111,15 @@ func (c *Config) GetSecrets(jwt string, secretIds []string) (map[string][]byte, 
 		return nil, err
 	}
 
-	conjur, err := conjurapi.NewClientFromToken(conjurapi.Config{Account: c.Account, ApplianceURL: c.BaseURL}, string(authenticatedToken))
+	conjur, err := conjurapi.NewClientFromToken(
+		conjurapi.Config{
+			Account:      c.Account,
+			ApplianceURL: c.BaseURL,
+			SSLCert:      c.SSLCert,
+		}, string(authenticatedToken))
 	if err != nil {
 		return nil, err
 	}
-
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: transport}
-	conjur.SetHttpClient(client)
 
 	secretValuesByID := map[string][]byte{}
 	secretValuesByFullID, err := conjur.RetrieveBatchSecretsSafe(secretIds)

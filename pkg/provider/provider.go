@@ -63,6 +63,7 @@ func mountWithDeps(
 		cfg.attributes["authnId"],
 		cfg.attributes["account"],
 		cfg.attributes["identity"],
+		cfg.attributes["sslCertificate"],
 	)
 	secrets, err := conjClient.GetSecrets(cfg.token, secretIDs)
 	if err != nil {
@@ -115,7 +116,7 @@ func parse(req *v1alpha1.MountRequest) (*Config, error) {
 	}
 
 	missingKeys := []string{}
-	for _, key := range []string{"account", "applianceUrl", "authnId", "identity"} {
+	for _, key := range []string{"account", "applianceUrl", "authnId", "identity", "sslCertificate"} {
 		if attributes[key] == "" {
 			missingKeys = append(missingKeys, key)
 		}
