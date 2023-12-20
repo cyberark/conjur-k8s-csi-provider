@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -71,7 +72,7 @@ func TestNewHealthServer(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			v := &mockVersionResponder{
 				called:   false,
@@ -81,14 +82,18 @@ func TestNewHealthServer(t *testing.T) {
 			p := &ConjurProviderServer{
 				versionFunc: v.Version,
 			}
-			h := NewHealthServer(p)
+			h := newHealthServerWithDeps(
+				p,
+				defaultPort+i,
+				defaultHealthCheckFactory,
+			)
 			go func() {
 				h.Start()
 			}()
 
 			req, err := http.NewRequest(
 				"GET",
-				"http://localhost:8080/healthz",
+				fmt.Sprintf("http://localhost:%d/healthz", defaultPort+i),
 				strings.NewReader(""),
 			)
 			assert.Nil(t, err)
