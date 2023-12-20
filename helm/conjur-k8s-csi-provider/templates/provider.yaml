@@ -36,9 +36,23 @@ spec:
         image: {{ .Values.providerServer.image.repo }}:{{ .Values.providerServer.image.tag }}
         imagePullPolicy: {{ .Values.providerServer.image.pullPolicy }}
         args: [ "-socket", "/etc/kubernetes/secrets-store-csi-providers/conjur.socket" ]
+        ports:
+        - containerPort: 8080
         volumeMounts:
         - name: provider-volume
           mountPath: "/etc/kubernetes/secrets-store-csi-providers"
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
       volumes:
       - name: provider-volume
         hostPath:
