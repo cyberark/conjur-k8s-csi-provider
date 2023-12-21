@@ -159,6 +159,7 @@ which injects secrets into Kubernetes environments via
    spec:
      provider: conjur
      parameters:
+       conjur.org/configurationVersion: 0.1.0
        account: myAccount
        applianceUrl: http://myorg.conjur.com
        authnId: authn-jwt/kube
@@ -216,6 +217,7 @@ The following table lists the configurable parameters on the Conjur Provider's
 | `spec.parameters.account` | Conjur account used during authentication | `myAccount` |
 | `spec.parameters.applianceUrl` | Conjur Appliance URL | `https://myorg.conjur.com` |
 | `spec.parameters.authnId` | Type and service ID of desired Conjur authenticator | `authn-jwt/service-id` |
+| `spec.parameters.conjur.org/configurationVersion` | Conjur CSI Provider configuration version | `0.1.0` |
 | `spec.parameters.identity` | Conjur identity used during authentication and authorization | `botApp` |
 | `spec.parameters.secrets` | Multiline string describing map of relative filepaths to Conjur variable IDs | <pre>- "relative/path/fileA.txt": "conjur/path/varA"<br>- "relative/path/fileB.txt": "conjur/path/varB"</pre> |
 | `spec.parameters.sslCertificate` | Conjur Appliance certificate | <pre>-----BEGIN CERTIFICATE-----<br>MIIDhDCCAmy...njemCrVXIWw==<br>-----END CERTIFICATE----- |
