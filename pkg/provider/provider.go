@@ -14,6 +14,7 @@ import (
 const providerName = "conjur"
 const providerVersion = "0.0.1"
 const saTokensKey = "csi.storage.k8s.io/serviceAccount.tokens"
+const configurationVersionKey = "conjur.org/configurationVersion"
 
 // Config contains information parses from a Mount request that is required for
 // authenticating with Conjur and retrieving secrets.
@@ -49,9 +50,9 @@ func mountWithDeps(
 	req *v1alpha1.MountRequest,
 	conjurFactory conjur.ClientFactory,
 ) (*v1alpha1.MountResponse, error) {
-	cfg, err := parse(req)
+	cfg, err := NewConfig(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse mount request: %w", err)
+		return nil, fmt.Errorf("failed to create configuration from mount request parameters: %w", err)
 	}
 
 	secretIDs := []string{}
@@ -91,8 +92,18 @@ func mountWithDeps(
 	}, nil
 }
 
-func parse(req *v1alpha1.MountRequest) (*Config, error) {
+func parseRequestAttributes(req *v1alpha1.MountRequest) (map[string]string, error) {
 	var attributes map[string]string
+
+	err := json.Unmarshal([]byte(req.GetAttributes()), &attributes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal attributes: %w", err)
+	}
+
+	return attributes, nil
+}
+
+func NewConfig(req *v1alpha1.MountRequest) (*Config, error) {
 	var tokens map[string]map[string]string
 	var token string
 	var secretsStr string
@@ -100,9 +111,14 @@ func parse(req *v1alpha1.MountRequest) (*Config, error) {
 	var permissions os.FileMode
 	var err error
 
-	err = json.Unmarshal([]byte(req.GetAttributes()), &attributes)
+	attributes, err := parseRequestAttributes(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal attributes: %w", err)
+		return nil, err
+	}
+
+	configVersion := attributes[configurationVersionKey]
+	if len(configVersion) > 0 && configVersion != "0.1.0" {
+		return nil, fmt.Errorf("unsupported configuration version: %q", configVersion)
 	}
 
 	err = json.Unmarshal([]byte(attributes[saTokensKey]), &tokens)

@@ -38,6 +38,16 @@ func TestMount(t *testing.T) {
 			},
 		},
 		{
+			description: "throws error decoding invalid attributes",
+			req: &v1alpha1.MountRequest{
+				Attributes: `{"conjur.org/configurationVersion": "0.2.0"}`,
+			},
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+				assert.Nil(t, resp)
+				assert.Contains(t, err.Error(), "unsupported configuration version")
+			},
+		},
+		{
 			description: "throws error decoding invalid serviceaccount tokens attribute",
 			req: &v1alpha1.MountRequest{
 				Attributes: "{\"csi.storage.k8s.io/serviceAccount.tokens\":\"invalid,json\"}",
