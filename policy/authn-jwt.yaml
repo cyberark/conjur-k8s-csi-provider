@@ -1,0 +1,44 @@
+---
+- !policy
+  id: conjur/authn-jwt/kube
+  body:
+  - !webservice
+
+  # Uncomment one of following variables depending on the public availability
+  # of the Service Account Issuer Discovery service in Kubernetes:
+  # If the service is publicly available, uncomment 'jwks-uri'.
+  # If the service is not available, uncomment 'public-keys'.
+  # - !variable
+  #   id: jwks-uri
+  - !variable
+    id: public-keys
+
+  # Used with 'jwks-uri'.
+  # Uncomment ca-cert if the JWKS website cert isn't trusted by conjur
+  # - !variable
+  #   id: ca-cert
+
+  # Used with 'public-keys'.
+  # This variable contains what "iss" in the JWT.
+  - !variable
+    id: issuer
+
+  # This variable contains what "aud" is the JWT.
+  # - !variable
+  #   id: audience
+
+  # This variable tells Conjur which claim in the JWT to use to determine the
+  # Conjur host identity.
+  # - !variable
+  #   id: token-app-property # Most likely set to "sub" for Kubernetes
+
+  # Used with 'token-app-property'.
+  # This variable will hold the Conjur policy path that contains the Conjur
+  # host identity found by looking at the claim entered in token-app-property.
+  # - !variable
+  #   id: identity-path
+
+  - !permit
+    role: !host /workload-host
+    privilege: [ read, authenticate ]
+    resource: !webservice

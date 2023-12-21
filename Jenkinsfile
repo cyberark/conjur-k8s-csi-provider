@@ -74,21 +74,6 @@ pipeline {
       }
     }
 
-    stage('Stage running on Atlantis Jenkins Agent Container'){
-        steps {
-            sh 'scripts/in-container.sh'
-        }
-    }
-
-    stage('Stage on AWS Instance') {
-      steps {
-        script {
-          // Run script from repo on an AWS instance managed by infrapool
-          infrapool.agentSh 'scripts/on-instance.sh'
-        }
-      }
-    }
-
     stage('Helm tests'){
       parallel {
         stage('Helm unittest') {
@@ -100,12 +85,12 @@ pipeline {
       }
     }
 
-    stage('Run tests'){
-      steps {
-        script {
-          infrapool.agentSh 'bin/test_unit'
-        }
-      }
+    stage('Unit tests'){
+      steps { script { infrapool.agentSh 'bin/test_unit' } }
+    }
+
+    stage('E2E tests') {
+      steps { script { infrapool.agentSh 'bin/test_e2e' } }
     }
 
     stage('Release') {

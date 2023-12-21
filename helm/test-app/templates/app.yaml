@@ -1,0 +1,25 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app
+  namespace: csi
+spec:
+  serviceAccountName: default
+  containers:
+    - name: app
+      image: golang:latest
+      imagePullPolicy: Always
+      command: [ "/bin/bash", "-c", "--" ]
+      args: [ "while true; do sleep 30; done;" ]
+      volumeMounts:
+        - name: conjur-csi-provider-volume
+          mountPath: /mnt/secrets-store
+          readOnly: true
+  volumes:
+    - name: conjur-csi-provider-volume
+      csi:
+        driver: 'secrets-store.csi.k8s.io'
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: {{ .Values.secretProviderClass.name }}

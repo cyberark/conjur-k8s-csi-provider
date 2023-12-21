@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+
+mkdir -p files
+
+# Check for CLI dependencies
+docker version >/dev/null  || { echo "docker cli required";  exit 1; }
+helm version >/dev/null    || { echo "helm cli required";    exit 1; }
+kind version >/dev/null    || { echo "kind cli required";    exit 1; }
+
+# Create KinD cluster
+export KIND_EXPERIMENTAL_DOCKER_NETWORK="kind-network"
+kind create cluster
+
+if [[ "${CONTAINERIZED}" == "true" ]]; then
+  # Point kubectl to KinD cluster using IP and port relative to shared Docker network
+  kind_cid="$(docker inspect --format="{{.Id}}" kind-control-plane)"
+  kind_ip="$(dirname "$(docker network inspect kind-network | yq ".[0][\"Containers\"][\"$kind_cid\"][\"IPv4Address\"]")")"
+  kind_port="$(dirname "$(docker port kind-control-plane)")"
+  kubectl config set clusters.kind-kind.server "https://$kind_ip:$kind_port"
+fi
+
+# Create testing namespace
+kubectl create ns csi
+kubectl config set-context --current --namespace=csi
+
+# Update Helm repos
+helm repo add cyberark --insecure-skip-tls-verify https://cyberark.github.io/helm-charts
+helm repo add secrets-store-csi-driver --insecure-skip-tls-verify https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+helm repo update
+
+# Pull required images
+docker pull cyberark/conjur-cli:8
+docker pull golang:latest
+
+# Build the CLI
+docker build -f - -t conjur-cli . <<EOF
+FROM golang:latest
+COPY --from=cyberark/conjur-cli:8 /usr/local/bin/conjur /usr/local/bin/conjur
+ENTRYPOINT ["/usr/local/bin/conjur"]
+EOF
+kind load docker-image conjur-cli:latest
+
+# Deploy Conjur
+CONJUR_NAMESPACE=conjur
+CONJUR_DATA_KEY="$(docker run --rm cyberark/conjur data-key generate)"
+
+# Create Conjur namespace
+kubectl create namespace "$CONJUR_NAMESPACE"
+
+# Install Conjur
+helm install conjur cyberark/conjur-oss \
+  --insecure-skip-tls-verify \
+  --namespace "$CONJUR_NAMESPACE" \
+  --wait --timeout "3m" \
+  --set "dataKey=$CONJUR_DATA_KEY" \
+  --set "authenticators=authn\,authn-jwt/kube" \
+  --set "service.external.enabled=false"
+
+# Create Conjur account
+kubectl exec --namespace conjur \
+            deployment/conjur-conjur-oss  \
+            --container=conjur-oss \
+            -- conjurctl account create "default" > ./files/created_account
+admin_api_key="$(cat ./files/created_account | grep API | awk '{print $5}')"
+
+# Get Conjur certificate
+wget https://raw.githubusercontent.com/cyberark/conjur-authn-k8s-client/master/helm/conjur-config-cluster-prep/bin/get-conjur-cert.sh -O ./files/get-conjur-cert.sh
+chmod +x ./files/get-conjur-cert.sh
+echo 'Y' | ./files/get-conjur-cert.sh -i -u https://conjur-conjur-oss.conjur.svc.cluster.local
+
+# Run Conjur CLI
+kubectl run conjur-cli-pod \
+  --image=conjur-cli:latest \
+  --image-pull-policy=Never \
+  --namespace=conjur \
+  --command -- sleep infinity
+kubectl wait \
+  --for=condition=ready \
+  --timeout=5m \
+  --namespace=conjur \
+  pod/conjur-cli-pod
+
+# Setup authenticator and secrets using Conjur CLI
+
+# Get values required by authn-jwt authenticator and store to files
+kubectl get --raw /.well-known/openid-configuration | jq -r .issuer > ./files/issuer
+echo '{"type":"jwks","value":'$(kubectl get --raw /openid/v1/jwks)'}' > ./files/jwks
+
+# Copy files into CLI container
+kubectl -n "${CONJUR_NAMESPACE}" cp ./files conjur-cli-pod:/files -c conjur-cli-pod
+kubectl -n "${CONJUR_NAMESPACE}" cp ./policy conjur-cli-pod:/policy -c conjur-cli-pod
+
+# Exec into CLI container
+kubectl -n "${CONJUR_NAMESPACE}" exec conjur-cli-pod -- bash -c "
+set -x
+
+# Initialise CLI and login
+echo yes | conjur init -u https://conjur-conjur-oss.conjur.svc.cluster.local -a "default" --self-signed
+conjur login -i admin -p $admin_api_key
+
+# Apply policy
+conjur policy replace -b root -f /policy/host.yaml
+conjur policy load -b root -f /policy/authn-jwt.yaml
+conjur policy load -b root -f /policy/variables.yaml
+
+# Set secret value
+conjur variable set -i db-credentials/url -v 'https://db.com'
+conjur variable set -i db-credentials/username -v 'db_user'
+conjur variable set -i db-credentials/password -v 'Sup3rSecretP@ssword'
+
+# Set variable values on authenticator
+conjur variable set -i conjur/authn-jwt/kube/public-keys -v \$(cat /files/jwks)
+conjur variable set -i conjur/authn-jwt/kube/issuer -v \$(cat /files/issuer)
+"
+
+# Deploy Secrets Store CSI Driver
+helm install secrets-store-csi-driver \
+  secrets-store-csi-driver/secrets-store-csi-driver \
+  --insecure-skip-tls-verify \
+  --wait \
+  --namespace kube-system \
+  --set linux.image.pullPolicy="IfNotPresent" \
+  --set syncSecret.enabled="true" \
+  --set 'tokenRequests[0].audience=conjur'
+
+# Build Conjur provider container image
+docker build -t conjur-csi-provider:latest \
+  --no-cache \
+  -f Dockerfile \
+  .
+kind load docker-image conjur-csi-provider:latest
+
+# Deploy Conjur provider from Helm chart
+helm install \
+  --wait \
+  --namespace kube-system \
+  --set providerServer.image.repo="conjur-csi-provider" \
+  --set providerServer.image.tag="latest" \
+  conjur-provider \
+  ./helm/conjur-k8s-csi-provider
+
+# Deploy the app
+helm install test-app ./helm/test-app \
+  --wait \
+  --set conjur.secrets="- \"relative/path/fileA.txt\": \"db-credentials/url\"
+- \"relative/path/fileB.txt\": \"db-credentials/username\"
+- \"relative/path/fileC.txt\": \"db-credentials/password\"" \
+  --set conjur.sslCertificate="$(cat ./files/conjur-cert.pem)"
+
+# Assertions
+fileA_content="$(kubectl exec pod/app -n csi -- cat /mnt/secrets-store/relative/path/fileA.txt)"
+fileB_content="$(kubectl exec pod/app -n csi -- cat /mnt/secrets-store/relative/path/fileB.txt)"
+fileC_content="$(kubectl exec pod/app -n csi -- cat /mnt/secrets-store/relative/path/fileC.txt)"
+if [[ "$fileA_content" == "https://db.com" ]] && \
+   [[ "$fileB_content" == "db_user" ]] && \
+   [[ "$fileC_content" == "Sup3rSecretP@ssword" ]];
+then
+  echo "TEST PASSED!"
+  exit 0
+else
+  echo "TEST FAILED!"
+  exit 1
+fi
