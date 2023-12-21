@@ -14,7 +14,7 @@ import (
 const providerName = "conjur"
 const providerVersion = "0.0.1"
 const saTokensKey = "csi.storage.k8s.io/serviceAccount.tokens"
-const configurationVersionKey = "cyberark.com/configurationVersion"
+const configurationVersionKey = "conjur.org/configurationVersion"
 
 // Config contains information parses from a Mount request that is required for
 // authenticating with Conjur and retrieving secrets.

@@ -40,7 +40,7 @@ func TestMount(t *testing.T) {
 		{
 			description: "throws error decoding invalid attributes",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"cyberark.com/configurationVersion": "0.2.0"}`,
+				Attributes: `{"conjur.org/configurationVersion": "0.2.0"}`,
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
