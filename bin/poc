@@ -28,17 +28,17 @@ helm repo add cyberark --insecure-skip-tls-verify https://cyberark.github.io/hel
 helm repo add secrets-store-csi-driver --insecure-skip-tls-verify https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
 helm repo update
 
-# Pull required images
+# Pull or build required images
 docker pull cyberark/conjur-cli:8
-docker pull golang:latest
+docker pull alpine:latest
+docker build -t conjur-csi-provider:latest \
+  --no-cache \
+  -f Dockerfile \
+  .
 
-# Build the CLI
-docker build -f - -t conjur-cli . <<EOF
-FROM golang:latest
-COPY --from=cyberark/conjur-cli:8 /usr/local/bin/conjur /usr/local/bin/conjur
-ENTRYPOINT ["/usr/local/bin/conjur"]
-EOF
-kind load docker-image conjur-cli:latest
+kind load docker-image cyberark/conjur-cli:8
+kind load docker-image alpine:latest
+kind load docker-image conjur-csi-provider:latest
 
 # Deploy Conjur
 CONJUR_NAMESPACE=conjur
@@ -57,10 +57,10 @@ helm install conjur cyberark/conjur-oss \
   --set "service.external.enabled=false"
 
 # Create Conjur account
-kubectl exec --namespace conjur \
-            deployment/conjur-conjur-oss  \
-            --container=conjur-oss \
-            -- conjurctl account create "default" > ./files/created_account
+kubectl exec deployment/conjur-conjur-oss \
+  --namespace conjur \
+  --container=conjur-oss \
+  -- conjurctl account create "default" > ./files/created_account
 admin_api_key="$(cat ./files/created_account | grep API | awk '{print $5}')"
 
 # Get Conjur certificate
@@ -70,7 +70,7 @@ echo 'Y' | ./files/get-conjur-cert.sh -i -u https://conjur-conjur-oss.conjur.svc
 
 # Run Conjur CLI
 kubectl run conjur-cli-pod \
-  --image=conjur-cli:latest \
+  --image=cyberark/conjur-cli:8 \
   --image-pull-policy=Never \
   --namespace=conjur \
   --command -- sleep infinity
@@ -91,7 +91,7 @@ kubectl -n "${CONJUR_NAMESPACE}" cp ./files conjur-cli-pod:/files -c conjur-cli-
 kubectl -n "${CONJUR_NAMESPACE}" cp ./policy conjur-cli-pod:/policy -c conjur-cli-pod
 
 # Exec into CLI container
-kubectl -n "${CONJUR_NAMESPACE}" exec conjur-cli-pod -- bash -c "
+kubectl -n "${CONJUR_NAMESPACE}" exec conjur-cli-pod -- /bin/sh -c "
 set -x
 
 # Initialise CLI and login
@@ -122,13 +122,6 @@ helm install secrets-store-csi-driver \
   --set linux.image.pullPolicy="IfNotPresent" \
   --set syncSecret.enabled="true" \
   --set 'tokenRequests[0].audience=conjur'
-
-# Build Conjur provider container image
-docker build -t conjur-csi-provider:latest \
-  --no-cache \
-  -f Dockerfile \
-  .
-kind load docker-image conjur-csi-provider:latest
 
 # Deploy Conjur provider from Helm chart
 helm install \

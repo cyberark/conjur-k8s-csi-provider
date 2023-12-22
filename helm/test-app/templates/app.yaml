@@ -8,7 +8,7 @@ spec:
   serviceAccountName: default
   containers:
     - name: app
-      image: golang:latest
+      image: alpine:latest
       imagePullPolicy: Always
       command: [ "/bin/bash", "-c", "--" ]
       args: [ "while true; do sleep 30; done;" ]

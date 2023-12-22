@@ -16,3 +16,10 @@ docker run --rm \
   bash -c "
     ./bin/poc
   "
+
+# containers is a space-delimited list of all containers connected to kind-network
+containers="$(docker network inspect --format '{{range .Containers}}{{.Name}} {{end}}' kind-network)"
+for container in $(echo $containers); do
+  docker rm -f -v "$container"
+done
+docker network rm kind-network
