@@ -1,0 +1,12 @@
+# Values for conjur-k8s-csi-provider-test-app. All missing values must be supplied by the user.
+
+secretProviderClass:
+  name: database-credentials
+
+conjur:
+  account: default
+  applianceUrl: https://conjur-conjur-oss.conjur.svc.cluster.local
+  authnId: authn-jwt/kube
+  identity: host/workload-host
+  secrets:
+  sslCertificate:

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+docker network create kind-network
+
+docker build \
+  -f Dockerfile.e2e \
+  -t conjur-k8s-csi-provider-e2e-runner:latest \
+  .
+
+docker run --rm \
+  --network kind-network \
+  -v "$PWD":/src/conjur-k8s-csi-provider \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -w /src/conjur-k8s-csi-provider \
+  conjur-k8s-csi-provider-e2e-runner:latest \
+  bash -c "
+    ./bin/poc
+  "
+
+# containers is a space-delimited list of all containers connected to kind-network
+containers="$(docker network inspect --format '{{range .Containers}}{{.Name}} {{end}}' kind-network)"
+for container in $(echo $containers); do
+  docker rm -f -v "$container"
+done
+docker network rm kind-network

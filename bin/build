@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -eox pipefail
+
+. bin/build_utils
+
+function main() {
+  retrieve_cyberark_ca_cert
+  build_docker_image
+}
+
+function build_docker_image() {
+  echo "Building Conjur CSI Driver Provider image..."
+  docker build \
+    -f Dockerfile \
+    -t conjur-k8s-csi-provider:latest \
+    .
+}
