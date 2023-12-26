@@ -36,3 +36,44 @@ open ./test/c.html
 From here your pull request will be reviewed and once you've responded to all
 feedback it will be merged into the project. Congratulations, you're a
 contributor!
+
+## Releases
+
+Releases should be created by maintainers only. To create a tag and release,
+follow the instructions in this section.
+
+### Pre-requisites
+
+1. Review the git log and ensure the [changelog](CHANGELOG.md) contains all
+   relevant recent changes with references to GitHub issues or PRs, if possible.
+1. Review the changes since the last tag, and if the dependencies have changed
+   revise the [NOTICES](NOTICES.txt) to correctly capture the included
+   dependencies and their licenses / copyrights.
+1. Ensure that all documentation that needs to be written has been 
+   written by TW, approved by PO/Engineer, and pushed to the forward-facing documentation.
+1. Scan the project for vulnerabilities
+
+### Update the version, changelog, and notices
+
+1. Create a new branch for the version bump.
+1. Based on the changelog content, determine the new version number.
+1. Update this version in the following files:
+    1. [provider.go](pkg/provider/provider.go)
+    1. [Chart version](helm/conjur-k8s-csi-provider/Chart.yaml)
+1. Commit these changes - `Bump version to x.y.z` is an acceptable commit
+   message - and open a PR for review.
+
+### Push Helm package
+
+1. Every release build packages the CSI Provider Helm chart for us. The package can be found on the draft (or published) release for the relevant version.
+1. Clone the repo [helm-charts](https://github.com/cyberark/helm-charts) and do the following:
+    1. Move the Helm package file created in the previous step to the *docs* folder in the `helm-charts` repo.
+    1. Go to the `helm-charts` repo root folder and execute the `reindex.sh` script file located there.
+    1. Create a PR with those changes.
+
+### Release and Promote
+
+1. Merging into main/master branches will automatically trigger a release. If successful, this release can be promoted at a later time.
+1. Jenkins build parameters can be utilized to promote a successful release or manually trigger aditional releases as needed.
+1. Reference the [internal automated release doc](https://github.com/conjurinc/docs/blob/master/reference/infrastructure/automated_releases.md#release-and-promotion-process) for releasing and promoting.
+

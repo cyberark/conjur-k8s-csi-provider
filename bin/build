@@ -2,7 +2,21 @@
 
 set -eox pipefail
 
-. bin/build_utils
+# Use Docker BuildKit to efficiently build the targets.
+# With BuildKit, only relevant layers for the target are built.
+export DOCKER_BUILDKIT=1
+
+# go to repo root folder for execution
+cd $(dirname $0)/..
+
+. bin/utils
+
+VERSION=unreleased
+# Version derived from CHANGELOG and automated release library
+[ -f VERSION ] && VERSION=$(<VERSION)
+FULL_VERSION_TAG="$VERSION-$(git_tag)"
+
+echo "---"
 
 function main() {
   retrieve_cyberark_ca_cert
@@ -10,9 +24,17 @@ function main() {
 }
 
 function build_docker_image() {
-  echo "Building Conjur CSI Driver Provider image..."
+
+  echo "Building conjur-k8s-csi-provider:$FULL_VERSION_TAG Docker image"
+
   docker build \
-    -f Dockerfile \
-    -t conjur-k8s-csi-provider:latest \
+    --tag "conjur-k8s-csi-provider:dev" \
+    --tag "conjur-k8s-csi-provider:${FULL_VERSION_TAG}" \
+    --tag "conjur-k8s-csi-provider:latest" \
     .
+
+  echo "---"
+
 }
+
+main

@@ -16,7 +16,13 @@ if (params.MODE == "PROMOTE") {
     // Any publishing of targetVersion artifacts occur here
     // Anything added to assetDirectory will be attached to the Github Release
 
-    //Note: assetDirectory is on the infrapool agent, not the local Jenkins agent.
+    // Pull existing images from internal registry in order to promote
+    infrapool.agentSh """
+      export PATH="release-tools/bin:${PATH}"
+      docker pull registry.tld/conjur-k8s-csi-provider:${sourceVersion}
+      # Promote source version to target version.
+      bin/publish --promote --source ${sourceVersion} --target ${targetVersion}
+    """
   }
   return
 }
@@ -74,6 +80,37 @@ pipeline {
       }
     }
 
+    stage('Build Docker image') {
+          steps {
+            script {
+              infrapool.agentSh 'bin/build'
+            }
+          }
+        }
+
+    stage('Scan Docker Image') {
+      parallel {
+        stage("Scan Docker Image for fixable issues") {
+          steps {
+            // Adding the false parameter to scanAndReport causes trivy to
+            // ignore vulnerabilities for which no fix is available. We'll
+            // only fail the build if we can actually fix the vulnerability
+            // right now.
+            scanAndReport(infrapool, 'conjur-k8s-csi-provider:latest', "HIGH", false)
+          }
+        }
+        stage("Scan Docker image for total issues") {
+          steps {
+            // By default, trivy includes vulnerabilities with no fix. We
+            // want to know about that ASAP, but they shouldn't cause a
+            // build failure until we can do something about it. This call
+            // to scanAndReport should always be left as "NONE"
+            scanAndReport(infrapool, "conjur-k8s-csi-provider:latest", "NONE", true)
+          }
+        }
+      }
+    }
+
     stage('Helm tests'){
       parallel {
         stage('Helm unittest') {
@@ -93,20 +130,39 @@ pipeline {
       steps { script { infrapool.agentSh 'bin/test_e2e' } }
     }
 
+    stage('Package artifacts') {
+      when {
+        expression {
+          MODE == "RELEASE"
+        }
+      }
+      steps {
+        script {
+          infrapool.agentSh 'bin/package_helm'
+        }
+      }
+    }
+
     stage('Release') {
       when {
         expression {
           MODE == "RELEASE"
         }
       }
-
       steps {
         script {
-          release(infrapool, { billOfMaterialsDirectory, assetDirectory ->
+          release(infrapool) { billOfMaterialsDirectory, assetDirectory, toolsDirectory ->
             // Publish release artifacts to all the appropriate locations
+
             // Copy any artifacts to assetDirectory to attach them to the Github release
-            infrapool.agentSh "mkdir -p target; cp target/* ${assetDirectory}"
-          })
+            infrapool.agentSh "cp -r helm-artifacts/*.tgz ${assetDirectory}"
+
+            // Create Go application SBOM using the go.mod version for the golang container image
+            infrapool.agentSh """export PATH="${toolsDirectory}/bin:${PATH}" && go-bom --tools "${toolsDirectory}" --go-mod ./go.mod --image "golang" --main "cmd/conjur-k8s-csi-provider/" --output "${billOfMaterialsDirectory}/go-app-bom.json" """
+            // Create Go module SBOM
+            infrapool.agentSh """export PATH="${toolsDirectory}/bin:${PATH}" && go-bom --tools "${toolsDirectory}" --go-mod ./go.mod --image "golang" --output "${billOfMaterialsDirectory}/go-mod-bom.json" """
+            infrapool.agentSh 'bin/publish --edge'
+          }
         }
       }
     }

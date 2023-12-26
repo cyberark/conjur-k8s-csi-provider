@@ -28,5 +28,3 @@ LABEL id="conjur-k8s-csi-provider"
 COPY --from=builder /conjur-csi-provider /conjur-csi-provider
 
 ENTRYPOINT [ "/conjur-csi-provider" ]
-
-
