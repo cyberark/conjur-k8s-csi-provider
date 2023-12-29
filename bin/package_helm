@@ -1,0 +1,11 @@
+
+#!/bin/bash
+set -euo pipefail
+
+helm_version=3.13.3
+
+docker run --rm \
+  -v $PWD/helm/conjur-k8s-csi-provider:/root/helm/conjur-k8s-csi-provider \
+  -v $PWD/helm-artifacts/:/root/helm-artifacts \
+  --workdir /root/helm-artifacts \
+  alpine/helm:${helm_version} package ../helm/conjur-k8s-csi-provider

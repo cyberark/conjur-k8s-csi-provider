@@ -16,6 +16,8 @@ spec:
         - name: conjur-csi-provider-volume
           mountPath: /mnt/secrets-store
           readOnly: true
+      securityContext:
+        allowPrivilegeEscalation: false
   volumes:
     - name: conjur-csi-provider-volume
       csi:

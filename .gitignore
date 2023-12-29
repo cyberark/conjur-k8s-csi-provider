@@ -1,3 +1,4 @@
 build_ca_certificate
 test
 files
+helm-artifacts
