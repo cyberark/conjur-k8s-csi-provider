@@ -130,6 +130,15 @@ pipeline {
       steps { script { infrapool.agentSh 'bin/test_e2e' } }
     }
 
+    // Allows for the promotion of images.
+    stage('Push images to internal registry') {
+      steps {
+        script {
+          infrapool.agentSh './bin/publish --internal'
+        }
+      }
+    }
+
     stage('Package artifacts') {
       when {
         expression {
