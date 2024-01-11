@@ -41,6 +41,8 @@ func newServerWithDeps(
 	mountFunc func(context.Context, *v1alpha1.MountRequest) (*v1alpha1.MountResponse, error),
 	versionFunc func(context.Context, *v1alpha1.VersionRequest) (*v1alpha1.VersionResponse, error),
 ) *ConjurProviderServer {
+	log.Println("Creating and registering gRPC server...")
+
 	grpcServer := grpcFactory()
 	providerServer := &ConjurProviderServer{
 		grpcServer:  grpcServer,
@@ -63,16 +65,17 @@ func (c *ConjurProviderServer) startWithDeps(
 	var err error
 	c.listener, err = listenerFactory("unix", socketPath)
 	if err != nil {
-		return fmt.Errorf("failed to start listener: %w", err)
+		return fmt.Errorf("failed to start socket listener: %w", err)
 	}
 
-	log.Println("Starting Conjur CSI Provider server...")
+	log.Printf("Serving gRPC server on socket %s...\n", socketPath)
 	return c.grpcServer.Serve(c.listener)
 }
 
 // Stop halts the gRPC server and closes the socket listener.
 func (c *ConjurProviderServer) Stop() error {
-	log.Println("Cleaning up Conjur CSI Provider server...")
+	log.Println("Stopping gRPC server...")
+
 	c.grpcServer.GracefulStop()
 
 	err := c.listener.Close()
@@ -80,6 +83,7 @@ func (c *ConjurProviderServer) Stop() error {
 		return err
 	}
 
+	log.Println("gRPC server stopped.")
 	return nil
 }
 

@@ -126,7 +126,7 @@ func TestStart(t *testing.T) {
 				return nil, errors.New("listener msg")
 			},
 			assertions: func(t *testing.T, err error) {
-				assert.Equal(t, "failed to start listener: listener msg", err.Error())
+				assert.Equal(t, "failed to start socket listener: listener msg", err.Error())
 			},
 		},
 		{

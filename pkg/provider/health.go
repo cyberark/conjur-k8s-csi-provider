@@ -49,14 +49,20 @@ func newHealthServerWithDeps(
 
 // Start serves the HealthServer's HTTP server on the given port.
 func (h *HealthServer) Start() error {
-	log.Printf("Starting Conjur CSI Provider Health server on port %d...\n", h.port)
+	log.Printf("Serving health server on port %d...\n", h.port)
 	return h.server.ListenAndServe()
 }
 
 // Stop gracefully shuts down the HeathServer's HTTP server.
 func (h *HealthServer) Stop() error {
-	log.Println("Cleaning up Conjur CSI Provider Health server...")
-	return h.server.Shutdown(context.TODO())
+	log.Println("Stopping health server...")
+
+	err := h.server.Shutdown(context.TODO())
+	if err == nil {
+		log.Println("Health server stopped.")
+	}
+
+	return err
 }
 
 func defaultHealthCheckFactory(provider *ConjurProviderServer) func(http.ResponseWriter, *http.Request) {
