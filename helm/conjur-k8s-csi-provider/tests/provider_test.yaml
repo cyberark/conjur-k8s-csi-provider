@@ -1,7 +1,7 @@
 # Helm unit test to be used with the 'helm-unittest' Helm plugin.
 # Reference: https://github.com/quintush/helm-unittest/blob/master/DOCUMENT.md
 
-suite: test conjur-k8s-csi-provider
+suite: test provider
 
 templates:
   - provider.yaml
@@ -11,6 +11,7 @@ defaults: &defaultRequired
   providerServer.image.repo: test-image
   providerServer.image.tag: 0.0.0
   providerServer.image.pullPolicy: Never
+  serviceAccount.name: test-sa
 
 tests:
   #=======================================================================
@@ -39,6 +40,12 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].imagePullPolicy
           value: Never
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: test-sa
 
   #=======================================================================
   - it: uses default values if none provided
@@ -63,6 +70,12 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].imagePullPolicy
           value: IfNotPresent
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: conjur-k8s-csi-provider
 
   #=======================================================================
   - it: allows setting labels and annotations on the provider pod
@@ -89,3 +102,19 @@ tests:
       - equal:
           path: spec.template.metadata.annotations.key
           value: annotationValue
+
+  #=======================================================================
+  - it: deploys to openshift with privileged security context
+  #=======================================================================
+    set:
+      <<: *defaultRequired
+      openshift.enabled: true
+
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: DaemonSet
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.privileged
+          value: true

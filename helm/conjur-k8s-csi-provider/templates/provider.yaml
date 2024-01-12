@@ -31,6 +31,7 @@ spec:
 {{ toYaml . | indent 8 }}
 {{- end }}
     spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
       - name: conjur-provider
         image: {{ .Values.providerServer.image.repo }}:{{ .Values.providerServer.image.tag }}
@@ -54,7 +55,11 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 30
         securityContext:
+{{- if .Values.openshift.enabled }}
+          privileged: true
+{{- else }}
           allowPrivilegeEscalation: false
+{{- end }}
       volumes:
       - name: provider-volume
         hostPath:

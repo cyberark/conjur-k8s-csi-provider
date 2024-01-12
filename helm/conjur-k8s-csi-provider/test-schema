@@ -26,8 +26,9 @@ readonly DEFAULT_PROVIDER_NAME_SETTING='providerServer.name=conjur-k8s-csi-provi
 readonly DEFAULT_PROVIDER_IMAGE_SETTING='providerServer.image.repo=cyberark/conjur-k8s-csi-provider'
 readonly DEFAULT_PROVIDER_TAG_SETTING='providerServer.image.tag=latest'
 readonly DEFAULT_PROVIDER_PULL_POLICY_SETTING='providerServer.image.pullPolicy=IfNotPresent'
-readonly DEFAULT_PROVIDER_SA_NAME_SETTING='providerServer.serviceAccount.name=default'
-readonly DEFAULT_PROVIDER_SA_CREATE_SETTING='providerServer.serviceAccount.create=false'
+readonly DEFAULT_SA_NAME_SETTING='serviceAccount.name=conjur-k8s-csi-provider'
+readonly DEFAULT_SA_CREATE_SETTING='serviceAccount.create=true'
+readonly DEFAULT_OPENSHIFT_SETTING='openshift.enabled=false'
 
 # Global test state
 num_passed=0
@@ -40,8 +41,9 @@ function provider_name_test() {
         --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
         --set "$DEFAULT_PROVIDER_TAG_SETTING" \
         --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
-        --set "$DEFAULT_PROVIDER_SA_NAME_SETTING" \
-        --set "$DEFAULT_PROVIDER_SA_CREATE_SETTING"
+        --set "$DEFAULT_SA_NAME_SETTING" \
+        --set "$DEFAULT_SA_CREATE_SETTING" \
+        --set "$DEFAULT_OPENSHIFT_SETTING"
 }
 
 function provider_image_test() {
@@ -50,8 +52,9 @@ function provider_image_test() {
         --set "providerServer.image.repo=$1" \
         --set "$DEFAULT_PROVIDER_TAG_SETTING" \
         --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
-        --set "$DEFAULT_PROVIDER_SA_NAME_SETTING" \
-        --set "$DEFAULT_PROVIDER_SA_CREATE_SETTING"
+        --set "$DEFAULT_SA_NAME_SETTING" \
+        --set "$DEFAULT_SA_CREATE_SETTING" \
+        --set "$DEFAULT_OPENSHIFT_SETTING"
 }
 
 function provider_tag_test() {
@@ -60,8 +63,9 @@ function provider_tag_test() {
         --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
         --set "providerServer.image.tag=$1" \
         --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
-        --set "$DEFAULT_PROVIDER_SA_NAME_SETTING" \
-        --set "$DEFAULT_PROVIDER_SA_CREATE_SETTING"
+        --set "$DEFAULT_SA_NAME_SETTING" \
+        --set "$DEFAULT_SA_CREATE_SETTING" \
+        --set "$DEFAULT_OPENSHIFT_SETTING"
 }
 
 function provider_pull_policy_test() {
@@ -70,8 +74,41 @@ function provider_pull_policy_test() {
         --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
         --set "$DEFAULT_PROVIDER_TAG_SETTING" \
         --set "providerServer.image.pullPolicy=$1" \
-        --set "$DEFAULT_PROVIDER_SA_NAME_SETTING" \
-        --set "$DEFAULT_PROVIDER_SA_CREATE_SETTING"
+        --set "$DEFAULT_SA_NAME_SETTING" \
+        --set "$DEFAULT_SA_CREATE_SETTING" \
+        --set "$DEFAULT_OPENSHIFT_SETTING"
+}
+
+function serviceaccount_name_test() {
+    helm lint . --strict \
+        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
+        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
+        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
+        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
+        --set "serviceAccount.name=$1" \
+        --set "$DEFAULT_SA_CREATE_SETTING" \
+        --set "$DEFAULT_OPENSHIFT_SETTING"
+}
+
+function serviceaccount_create_test() {
+    helm lint . --strict \
+        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
+        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
+        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
+        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
+        --set "$DEFAULT_SA_NAME_SETTING" \
+        --set "serviceAccount.create=$1" \
+        --set "$DEFAULT_OPENSHIFT_SETTING"
+}
+function openshift_enabled_test() {
+    helm lint . --strict \
+        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
+        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
+        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
+        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
+        --set "$DEFAULT_SA_NAME_SETTING" \
+        --set "$DEFAULT_SA_CREATE_SETTING" \
+        --set "openshift.enabled=$1"
 }
 
 function main() {
@@ -116,6 +153,22 @@ function main() {
 
     announce "Null-string provider server version is rejected"
     provider_pull_policy_test ""
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "ServiceAccount name with dotted name is accepted"
+    serviceaccount_name_test "dotted.serviceaccount.name"
+    update_results "$?"
+
+    announce "ServiceAccount name with upper case characters is rejected"
+    serviceaccount_name_test "NameWithUpperCase"
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "ServiceAccount name with less than 253 characters is accepted"
+    serviceaccount_name_test "name-with-253-chars----------30--------40--------50--------60--------70--------80--------90--------100-------110-------120--------130-------140-------150-------160-------170-------180-------190-------200-------210-------220-------230-------240-------250"
+    update_results "$?"
+
+    announce "ServiceAccount name with 253 characters is rejected"
+    serviceaccount_name_test "name-with-more-than-253-chars----------40--------50--------60--------70--------80--------90--------100-------110-------120--------130-------140-------150-------160-------170-------180-------190-------200-------210-------220-------230-------240-------2503"
     update_results "$?" "$EXPECT_FAILURE"
 
     display_final_results
