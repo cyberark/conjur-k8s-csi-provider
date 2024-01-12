@@ -73,18 +73,12 @@ func (c *ConjurProviderServer) startWithDeps(
 }
 
 // Stop halts the gRPC server and closes the socket listener.
-func (c *ConjurProviderServer) Stop() error {
+func (c *ConjurProviderServer) Stop() {
 	log.Println("Stopping gRPC server...")
 
 	c.grpcServer.GracefulStop()
 
-	err := c.listener.Close()
-	if err != nil {
-		return err
-	}
-
 	log.Println("gRPC server stopped.")
-	return nil
 }
 
 func (c *ConjurProviderServer) Mount(ctx context.Context, req *v1alpha1.MountRequest) (*v1alpha1.MountResponse, error) {

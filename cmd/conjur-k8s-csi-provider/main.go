@@ -10,36 +10,48 @@ import (
 )
 
 func main() {
-	var s *provider.ConjurProviderServer
-	var h *provider.HealthServer
+	exitCode := 0
 
-	s = provider.NewServer()
+	var providerServer *provider.ConjurProviderServer
+	providerErr := make(chan error)
+	var healthServer *provider.HealthServer
+	healthErr := make(chan error)
+
+	providerServer = provider.NewServer()
 	go func() {
-		err := s.Start()
+		err := providerServer.Start()
 		if err != nil {
-			log.Fatalf("Failed to start CSI provider server: %v", err)
+			providerErr <- err
 		}
 	}()
 
-	h = provider.NewHealthServer(s)
+	healthServer = provider.NewHealthServer(providerServer)
 	go func() {
-		err := h.Start()
+		err := healthServer.Start()
 		if err != nil {
-			log.Fatalf("Failed to start CSI provider health server: %v", err)
+			healthErr <- err
 		}
 	}()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
 
-	err := h.Stop()
-	if err != nil {
-		log.Fatalf("Failed to stop the CSI provider health server: %v", err)
+	select {
+	case err := <-providerErr:
+		log.Printf("CSI provider server failed: %v", err)
+		exitCode = 1
+	case err := <-healthErr:
+		log.Printf("CSI provider health server failed: %v", err)
+		exitCode = 1
+	case <-stop:
 	}
 
-	err = s.Stop()
+	err := healthServer.Stop()
 	if err != nil {
-		log.Fatalf("Failed to stop the CSI provider server: %v", err)
+		log.Printf("Failed to stop the CSI provider health server: %v", err)
+		exitCode = 1
 	}
+
+	providerServer.Stop()
+	os.Exit(exitCode)
 }
