@@ -36,12 +36,12 @@ spec:
       - name: conjur-provider
         image: {{ .Values.providerServer.image.repo }}:{{ .Values.providerServer.image.tag }}
         imagePullPolicy: {{ .Values.providerServer.image.pullPolicy }}
-        args: [ "-socket", "/etc/kubernetes/secrets-store-csi-providers/conjur.socket" ]
+        args: [ "-socket", "/var/run/secrets-store-csi-providers/conjur.socket" ]
         ports:
         - containerPort: 8080
         volumeMounts:
         - name: provider-volume
-          mountPath: "/etc/kubernetes/secrets-store-csi-providers"
+          mountPath: "/var/run/secrets-store-csi-providers"
         readinessProbe:
           httpGet:
             path: /healthz
@@ -63,4 +63,4 @@ spec:
       volumes:
       - name: provider-volume
         hostPath:
-          path: "/etc/kubernetes/secrets-store-csi-providers"
+          path: "/var/run/secrets-store-csi-providers"

@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/secrets-store-csi-driver/provider/v1alpha1"
 )
 
-const defaultSocketPath string = "/etc/kubernetes/secrets-store-csi-providers/conjur.sock"
+const defaultSocketPath string = "/var/run/secrets-store-csi-providers/conjur.sock"
 
 type grpcServer interface {
 	RegisterService(*grpc.ServiceDesc, any)
