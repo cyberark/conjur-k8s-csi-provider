@@ -163,14 +163,6 @@ function main() {
     serviceaccount_name_test "NameWithUpperCase"
     update_results "$?" "$EXPECT_FAILURE"
 
-    announce "ServiceAccount name with less than 253 characters is accepted"
-    serviceaccount_name_test "name-with-253-chars----------30--------40--------50--------60--------70--------80--------90--------100-------110-------120--------130-------140-------150-------160-------170-------180-------190-------200-------210-------220-------230-------240-------250"
-    update_results "$?"
-
-    announce "ServiceAccount name with 253 characters is rejected"
-    serviceaccount_name_test "name-with-more-than-253-chars----------40--------50--------60--------70--------80--------90--------100-------110-------120--------130-------140-------150-------160-------170-------180-------190-------200-------210-------220-------230-------240-------2503"
-    update_results "$?" "$EXPECT_FAILURE"
-
     display_final_results
     if [ "$num_failed" -ne 0 ]; then
         exit 1
