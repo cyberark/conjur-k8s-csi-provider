@@ -1,14 +1,28 @@
 # Values for conjur-k8s-csi-provider. All missing values must be supplied by the user.
 
-openshift:
-  enabled: false
-
 providerServer:
   name: conjur-k8s-csi-provider
   image:
     repo: cyberark/conjur-k8s-csi-provider
     tag: latest
     pullPolicy: IfNotPresent
+
+# securityContext defines security configuration applied to the Provider
+# container. See the K8s API reference for additional options:
+# https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#securitycontext-v1-core
+#
+# When deployed to OpenShift, the Conjur Provider requires a more permissive
+# security config to be able to connect to a socket on a hostPath volume. Use
+# the following config:
+#
+# securityContext: {
+#   privileged: true,
+#   allowPrivilegeEscalation: true
+# }
+securityContext: {
+  allowPrivilegeEscalation: false,
+  privileged: false
+}
 
 serviceAccount:
   create: true

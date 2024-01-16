@@ -44,6 +44,9 @@ tests:
           path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
           value: false
       - equal:
+          path: spec.template.spec.containers[0].securityContext.privileged
+          value: false
+      - equal:
           path: spec.template.spec.serviceAccountName
           value: test-sa
 
@@ -72,6 +75,9 @@ tests:
           value: IfNotPresent
       - equal:
           path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.privileged
           value: false
       - equal:
           path: spec.template.spec.serviceAccountName
@@ -104,11 +110,13 @@ tests:
           value: annotationValue
 
   #=======================================================================
-  - it: deploys to openshift with privileged security context
+  - it: allows setting custom security configuration on the provider container
   #=======================================================================
     set:
       <<: *defaultRequired
-      openshift.enabled: true
+      securityContext.privileged: true
+      securityContext.runAsNotRoot: true
+      securityContext.runAsUser: 555
 
     asserts:
       - hasDocuments:
@@ -116,5 +124,14 @@ tests:
       - isKind:
           of: DaemonSet
       - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
           path: spec.template.spec.containers[0].securityContext.privileged
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 555
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNotRoot
           value: true

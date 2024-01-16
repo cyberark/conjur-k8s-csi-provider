@@ -216,11 +216,11 @@ Helm chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `openshift.enabled` | Indicates that Conjur Provider is to be installed on an OpenShift platform | `false` |
 | `providerServer.name` | Name given to Provider DaemonSet and child Pods | `conjur-k8s-csi-provider` |
 | `providerServer.image.repo` | Conjur Provider Docker image repository | `cyberark/conjur-k8s-csi-provider` |
 | `providerServer.image.tag` | Conjur Provider Docker image tag | `latest` |
 | `providerServer.image.pullPolicy` | Pull Policy for Conjur Provider Docker image | `IfNotPresent` |
+| `securityContext` | Security configuration to be applied to Conjur Provider container | <pre>{<br> privileged: false,<br>  allowPrivilegeEscalation: false<br>}</pre> |
 | `serviceAccount.create` | Controls whether or not a ServiceAccout is created | `true` |
 | `serviceAccount.name` | Name of the ServiceAccount associated with Provider Pods | `conjur-k8s-csi-provider` |
 | `labels` | Map of labels applied to Provider DaemonSet and child Pods | `{}` |

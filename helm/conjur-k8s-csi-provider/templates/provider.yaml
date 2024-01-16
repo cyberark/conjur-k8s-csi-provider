@@ -54,11 +54,11 @@ spec:
             port: 8080
           initialDelaySeconds: 30
           periodSeconds: 30
+{{- if not (empty .Values.securityContext) }}
         securityContext:
-{{- if .Values.openshift.enabled }}
-          privileged: true
-{{- else }}
-          allowPrivilegeEscalation: false
+{{- with .Values.securityContext }}
+{{ toYaml . | indent 10 }}
+{{- end }}
 {{- end }}
       volumes:
       - name: provider-volume
