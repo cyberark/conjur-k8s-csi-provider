@@ -1,9 +1,11 @@
 package provider
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"testing"
 
@@ -51,27 +53,30 @@ var stopped bool
 func TestNewServerWithDeps(t *testing.T) {
 	testCases := []struct {
 		description string
-		grpcFactory func(opt ...grpc.ServerOption) grpcServer
+		socketPath  string
 		mountFunc   func(context.Context, *v1alpha1.MountRequest) (*v1alpha1.MountResponse, error)
 		versionFunc func(context.Context, *v1alpha1.VersionRequest) (*v1alpha1.VersionResponse, error)
-		assertions  func(*testing.T, *ConjurProviderServer)
+		assertions  func(*testing.T, *ConjurProviderServer, bytes.Buffer)
 	}{
 		{
-			description: "provider server calls custom mount and version functions",
-			grpcFactory: func(opt ...grpc.ServerOption) grpcServer {
-				return mockGrpc{
-					stop:            func() {},
-					registerService: func(sd *grpc.ServiceDesc, ss any) {},
-					serve:           func(lis net.Listener) error { return nil },
-				}
+			description: "provider server warns against using non-standard providers dir",
+			socketPath:  "/non/standard/path/to/conjur.sock",
+			assertions: func(t *testing.T, c *ConjurProviderServer, logs bytes.Buffer) {
+				assert.Contains(t, logs.String(), "WARNING")
+				assert.Contains(t, logs.String(), "Using non-standard providers directory /non/standard/path/to")
+				assert.Contains(t, logs.String(), "Ensure this directory has been configured on your CSI Driver before proceeding")
 			},
+		},
+		{
+			description: "provider server calls custom mount and version functions",
+			socketPath:  DefaultSocketPath,
 			mountFunc: func(context.Context, *v1alpha1.MountRequest) (*v1alpha1.MountResponse, error) {
 				return nil, fmt.Errorf("custom mount error")
 			},
 			versionFunc: func(context.Context, *v1alpha1.VersionRequest) (*v1alpha1.VersionResponse, error) {
 				return nil, fmt.Errorf("custom version error")
 			},
-			assertions: func(t *testing.T, c *ConjurProviderServer) {
+			assertions: func(t *testing.T, c *ConjurProviderServer, logs bytes.Buffer) {
 				var err error
 
 				_, err = c.Mount(context.TODO(), &v1alpha1.MountRequest{
@@ -92,12 +97,23 @@ func TestNewServerWithDeps(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
+			var logBuffer bytes.Buffer
+			log.SetOutput(&logBuffer)
+
 			p := newServerWithDeps(
-				tc.grpcFactory,
+				tc.socketPath,
+				func(opt ...grpc.ServerOption) grpcServer {
+					return mockGrpc{
+						stop:            func() {},
+						registerService: func(sd *grpc.ServiceDesc, ss any) {},
+						serve:           func(lis net.Listener) error { return nil },
+					}
+				},
 				tc.mountFunc,
 				tc.versionFunc,
 			)
-			tc.assertions(t, p)
+
+			tc.assertions(t, p, logBuffer)
 		})
 	}
 }
@@ -153,7 +169,7 @@ func TestStart(t *testing.T) {
 				}
 			}
 
-			p := newServerWithDeps(grpcFactory, nil, nil)
+			p := newServerWithDeps("", grpcFactory, nil, nil)
 			err := p.startWithDeps(tc.listenerFactory, "")
 			tc.assertions(t, err)
 		})
@@ -186,7 +202,7 @@ func TestStop(t *testing.T) {
 				return mockListener{}, nil
 			}
 
-			p := newServerWithDeps(grpcFactory, nil, nil)
+			p := newServerWithDeps("", grpcFactory, nil, nil)
 			err := p.startWithDeps(listenerFactory, "")
 			assert.Nil(t, err)
 			stopped = false

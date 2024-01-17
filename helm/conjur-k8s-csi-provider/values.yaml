@@ -1,11 +1,16 @@
 # Values for conjur-k8s-csi-provider. All missing values must be supplied by the user.
 
-providerServer:
+daemonSet:
   name: conjur-k8s-csi-provider
   image:
     repo: cyberark/conjur-k8s-csi-provider
     tag: latest
     pullPolicy: IfNotPresent
+
+provider:
+  name: conjur
+  healthPort: 8080
+  socketDir: /var/run/secrets-store-csi-providers
 
 # securityContext defines security configuration applied to the Provider
 # container. See the K8s API reference for additional options:

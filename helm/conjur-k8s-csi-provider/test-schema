@@ -22,145 +22,125 @@ cd "$(dirname "$0")"
 source ./utils.sh
 
 # Default testing values for required chart values
-readonly DEFAULT_PROVIDER_NAME_SETTING='providerServer.name=conjur-k8s-csi-provider'
-readonly DEFAULT_PROVIDER_IMAGE_SETTING='providerServer.image.repo=cyberark/conjur-k8s-csi-provider'
-readonly DEFAULT_PROVIDER_TAG_SETTING='providerServer.image.tag=latest'
-readonly DEFAULT_PROVIDER_PULL_POLICY_SETTING='providerServer.image.pullPolicy=IfNotPresent'
+readonly DEFAULT_DAEMONSET_NAME_SETTING='daemonSet.name=conjur-k8s-csi-provider'
+readonly DEFAULT_DAEMONSET_IMAGE_REPO_SETTING='daemonSet.image.repo=cyberark/conjur-k8s-csi-provider'
+readonly DEFAULT_DAEMONSET_IMAGE_TAG_SETTING='daemonSet.image.tag=latest'
+readonly DEFAULT_DAEMONSET_IMAGE_PULL_POLICY_SETTING='daemonSet.image.pullPolicy=IfNotPresent'
+readonly DEFAULT_PROVIDER_NAME_SETTING='provider.name=conjur'
+readonly DEFAULT_PROVIDER_HEALTHPORT_SETTING='provider.healthPort=8081'
+readonly DEFAULT_PROVIDER_SOCKETDIR_SETTING='provider.socketDir=/var/run/secrets-store-csi-providers'
 readonly DEFAULT_SA_NAME_SETTING='serviceAccount.name=conjur-k8s-csi-provider'
 readonly DEFAULT_SA_CREATE_SETTING='serviceAccount.create=true'
-readonly DEFAULT_OPENSHIFT_SETTING='openshift.enabled=false'
+readonly DEFAULT_LABELS_SETTING='labels.foo=bar'
+readonly DEFAULT_ANNOTATIONS_SETTING='annotations.fizz=buzz'
 
 # Global test state
 num_passed=0
 num_failed=0
 test_failed=false
 
-function provider_name_test() {
-    helm lint . --strict \
-        --set "providerServer.name=$1" \
-        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
-        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
-        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
+function generic_test() {
+    helm lint . --strict --debug \
+        --set "$DEFAULT_DAEMONSET_NAME_SETTING" \
+        --set "$DEFAULT_DAEMONSET_IMAGE_REPO_SETTING" \
+        --set "$DEFAULT_DAEMONSET_IMAGE_TAG_SETTING" \
+        --set "$DEFAULT_DAEMONSET_IMAGE_PULL_POLICY_SETTING" \
+        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
+        --set "$DEFAULT_PROVIDER_HEALTHPORT_SETTING" \
+        --set "$DEFAULT_PROVIDER_SOCKETDIR_SETTING" \
         --set "$DEFAULT_SA_NAME_SETTING" \
         --set "$DEFAULT_SA_CREATE_SETTING" \
-        --set "$DEFAULT_OPENSHIFT_SETTING"
-}
-
-function provider_image_test() {
-    helm lint . --strict \
-        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
-        --set "providerServer.image.repo=$1" \
-        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
-        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
-        --set "$DEFAULT_SA_NAME_SETTING" \
-        --set "$DEFAULT_SA_CREATE_SETTING" \
-        --set "$DEFAULT_OPENSHIFT_SETTING"
-}
-
-function provider_tag_test() {
-    helm lint . --strict \
-        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
-        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
-        --set "providerServer.image.tag=$1" \
-        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
-        --set "$DEFAULT_SA_NAME_SETTING" \
-        --set "$DEFAULT_SA_CREATE_SETTING" \
-        --set "$DEFAULT_OPENSHIFT_SETTING"
-}
-
-function provider_pull_policy_test() {
-    helm lint . --strict \
-        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
-        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
-        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
-        --set "providerServer.image.pullPolicy=$1" \
-        --set "$DEFAULT_SA_NAME_SETTING" \
-        --set "$DEFAULT_SA_CREATE_SETTING" \
-        --set "$DEFAULT_OPENSHIFT_SETTING"
-}
-
-function serviceaccount_name_test() {
-    helm lint . --strict \
-        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
-        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
-        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
-        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
-        --set "serviceAccount.name=$1" \
-        --set "$DEFAULT_SA_CREATE_SETTING" \
-        --set "$DEFAULT_OPENSHIFT_SETTING"
-}
-
-function serviceaccount_create_test() {
-    helm lint . --strict \
-        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
-        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
-        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
-        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
-        --set "$DEFAULT_SA_NAME_SETTING" \
-        --set "serviceAccount.create=$1" \
-        --set "$DEFAULT_OPENSHIFT_SETTING"
-}
-function openshift_enabled_test() {
-    helm lint . --strict \
-        --set "$DEFAULT_PROVIDER_NAME_SETTING" \
-        --set "$DEFAULT_PROVIDER_IMAGE_SETTING" \
-        --set "$DEFAULT_PROVIDER_TAG_SETTING" \
-        --set "$DEFAULT_PROVIDER_PULL_POLICY_SETTING" \
-        --set "$DEFAULT_SA_NAME_SETTING" \
-        --set "$DEFAULT_SA_CREATE_SETTING" \
-        --set "openshift.enabled=$1"
+        --set "$DEFAULT_LABELS_SETTING" \
+        --set "$DEFAULT_ANNOTATIONS_SETTING" \
+        $1
 }
 
 function main() {
     banner $BOLD "Running Helm schema tests for chart \"conjur-config-cluster-prep\""
     check_helm_version
 
-    announce "Valid provider server name is accepted"
-    provider_name_test "a-valid-name"
+    announce "Valid DaemonSet name is accepted"
+    generic_test '--set daemonSet.name=a-valid-name'
     update_results "$?"
 
-    announce "Null-string provider server name is rejected"
-    provider_name_test ""
+    announce "Null-string DaemonSet name is rejected"
+    generic_test '--set daemonSet.name='
     update_results "$?" "$EXPECT_FAILURE"
 
-    announce "Valid provider server image is accepted"
-    provider_image_test "imagerepo/imagename"
+    announce "Valid DaemonSet image is accepted"
+    generic_test '--set daemonSet.image.repo=imagerepo/imagename'
     update_results "$?"
 
-    announce "Null-string provider server image is rejected"
-    provider_image_test ""
+    announce "Null-string DaemonSet image is rejected"
+    generic_test '--set daemonSet.image.repo='
     update_results "$?" "$EXPECT_FAILURE"
 
-    announce "Valid provider server version is accepted"
-    provider_tag_test "1.2.3"
+    announce "Valid DaemonSet image version is accepted"
+    generic_test '--set daemonSet.image.tag=1.2.3'
     update_results "$?"
 
-    announce "Null-string provider server version is rejected"
-    provider_tag_test ""
+    announce "Null-string DaemonSet image version is rejected"
+    generic_test '--set daemonSet.image.tag='
     update_results "$?" "$EXPECT_FAILURE"
 
-    announce "Invalid provider server version is rejected"
-    provider_tag_test "vFour"
+    announce "Invalid DaemonSet image version is rejected"
+    generic_test '--set daemonSet.image.tag=vFour'
     update_results "$?" "$EXPECT_FAILURE"
 
-    announce "Valid provider server image pull policy is accepted"
-    provider_pull_policy_test "Always"
+    announce "Valid DaemonSet image pull policy is accepted"
+    generic_test '--set daemonSet.image.pullPolicy=Always'
     update_results "$?"
 
-    announce "Invalid provider server image pull policy is accepted"
-    provider_pull_policy_test "OnlyIfLeapYear"
+    announce "Invalid DaemonSet image pull policy is accepted"
+    generic_test '--set daemonSet.image.pullPolicy=OnlyIfLeapYear'
     update_results "$?" "$EXPECT_FAILURE"
 
-    announce "Null-string provider server version is rejected"
-    provider_pull_policy_test ""
+    announce "Null-string DaemonSet image pull policy is rejected"
+    generic_test '--set daemonSet.image.pullPolicy='
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "Valid Provider name is accepted"
+    generic_test '--set provider.name=conjur1'
+    update_results "$?"
+
+    announce "Null-string Provider name is rejected"
+    generic_test '--set provider.name='
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "Valid Provider health server port is accepted"
+    generic_test '--set provider.healthPort=9000'
+    update_results "$?"
+
+    announce "Invalid Provider health server port is rejected"
+    generic_test '--set provider.healthPort=not-a-number'
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "Null-string Provider health server port is rejected"
+    generic_test '--set provider.healthPort='
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "Valid Provider socket directory is accepted"
+    generic_test '--set provider.socketDir=/some/path'
+    update_results "$?"
+
+    announce "Relative Provider socket directory is rejected"
+    generic_test '--set provider.socketDir=some/relative/path'
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "Trailing slash Provider socket directory is rejected"
+    generic_test '--set provider.socketDir=/some/path/'
+    update_results "$?" "$EXPECT_FAILURE"
+
+    announce "Null-string Provider socket directory is rejected"
+    generic_test '--set provider.socketDir='
     update_results "$?" "$EXPECT_FAILURE"
 
     announce "ServiceAccount name with dotted name is accepted"
-    serviceaccount_name_test "dotted.serviceaccount.name"
+    generic_test '--set serviceAccount.name=dotted.serviceaccount.name'
     update_results "$?"
 
     announce "ServiceAccount name with upper case characters is rejected"
-    serviceaccount_name_test "NameWithUpperCase"
+    generic_test '--set serviceAccount.name=NameWithUpperCase'
     update_results "$?" "$EXPECT_FAILURE"
 
     display_final_results

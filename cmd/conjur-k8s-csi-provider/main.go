@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -12,12 +13,16 @@ import (
 func main() {
 	exitCode := 0
 
+	healthPort := flag.Int("healthPort", provider.DefaultPort, "Port to expose Conjur Provider health server")
+	socketPath := flag.String("socketPath", provider.DefaultSocketPath, "Socket to expose Conjur Provider gRPC server")
+	flag.Parse()
+
 	var providerServer *provider.ConjurProviderServer
 	providerErr := make(chan error)
 	var healthServer *provider.HealthServer
 	healthErr := make(chan error)
 
-	providerServer = provider.NewServer()
+	providerServer = provider.NewServer(*socketPath)
 	go func() {
 		err := providerServer.Start()
 		if err != nil {
@@ -25,7 +30,7 @@ func main() {
 		}
 	}()
 
-	healthServer = provider.NewHealthServer(providerServer)
+	healthServer = provider.NewHealthServer(providerServer, *healthPort)
 	go func() {
 		err := healthServer.Start()
 		if err != nil {

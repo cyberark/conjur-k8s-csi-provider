@@ -84,7 +84,7 @@ func TestNewHealthServer(t *testing.T) {
 			}
 			h := newHealthServerWithDeps(
 				p,
-				defaultPort+i,
+				DefaultPort+i,
 				defaultHealthCheckFactory,
 			)
 			go func() {
@@ -93,7 +93,7 @@ func TestNewHealthServer(t *testing.T) {
 
 			req, err := http.NewRequest(
 				"GET",
-				fmt.Sprintf("http://localhost:%d/healthz", defaultPort+i),
+				fmt.Sprintf("http://localhost:%d/healthz", DefaultPort+i),
 				strings.NewReader(""),
 			)
 			assert.Nil(t, err)

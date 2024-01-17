@@ -216,10 +216,13 @@ Helm chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `providerServer.name` | Name given to Provider DaemonSet and child Pods | `conjur-k8s-csi-provider` |
-| `providerServer.image.repo` | Conjur Provider Docker image repository | `cyberark/conjur-k8s-csi-provider` |
-| `providerServer.image.tag` | Conjur Provider Docker image tag | `latest` |
-| `providerServer.image.pullPolicy` | Pull Policy for Conjur Provider Docker image | `IfNotPresent` |
+| `daemonSet.name` | Name given to Provider DaemonSet and child Pods | `conjur-k8s-csi-provider` |
+| `daemonSet.image.repo` | Conjur Provider Docker image repository | `cyberark/conjur-k8s-csi-provider` |
+| `daemonSet.image.tag` | Conjur Provider Docker image tag | `latest` |
+| `daemonSet.image.pullPolicy` | Pull Policy for Conjur Provider Docker image | `IfNotPresent` |
+| `provider.name` | Name used to reference Conjur Provider instance | `conjur` |
+| `provider.healthPort` | Port to expose Conjur Provider health server | `8080` |
+| `provider.socketDir` | Directory of socket connections to the Secrets Store CSI Driver | `/var/run/secrets-store-csi-providers` |
 | `securityContext` | Security configuration to be applied to Conjur Provider container | <pre>{<br> privileged: false,<br>  allowPrivilegeEscalation: false<br>}</pre> |
 | `serviceAccount.create` | Controls whether or not a ServiceAccout is created | `true` |
 | `serviceAccount.name` | Name of the ServiceAccount associated with Provider Pods | `conjur-k8s-csi-provider` |

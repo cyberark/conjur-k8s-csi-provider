@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/secrets-store-csi-driver/provider/v1alpha1"
 )
 
-const defaultPort int = 8080
+const DefaultPort int = 8080
 
 // HealthServer is responsible for serving a /healthz endpoint over HTTP on a
 // given port in order to report on the health of a ConjurProviderServer instance.
@@ -20,11 +20,11 @@ type HealthServer struct {
 }
 
 // NewHealthServer creates a new instance given a ConjurProviderServer instance
-// with the default port and health check behavior.
-func NewHealthServer(provider *ConjurProviderServer) *HealthServer {
+// with the default health check behavior.
+func NewHealthServer(provider *ConjurProviderServer, port int) *HealthServer {
 	return newHealthServerWithDeps(
 		provider,
-		defaultPort,
+		port,
 		defaultHealthCheckFactory,
 	)
 }

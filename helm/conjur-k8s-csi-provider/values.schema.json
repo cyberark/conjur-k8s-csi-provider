@@ -1,10 +1,12 @@
 {
     "$schema": "http://json-schema.org/schema",
     "required": [
-      "providerServer"
+      "daemonSet",
+      "provider",
+      "securityContext"
     ],
     "properties": {
-      "providerServer": {
+      "daemonSet": {
         "required": [
           "name",
           "image"
@@ -38,6 +40,27 @@
           }
         }
       },
+      "provider": {
+        "required": [
+          "name",
+          "healthPort",
+          "socketDir"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "healthPort": {
+            "type": "number"
+          },
+          "socketDir": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "(^\/(?:[^\/]+\/)*[^\/]+)$"
+          }
+        }
+      },
       "serviceAccount": {
         "required": [
           "create",
@@ -50,16 +73,6 @@
           "name": {
             "type": "string",
             "minLength": 1
-          }
-        }
-      },
-      "openshift": {
-        "required": [
-          "enabled"
-        ],
-        "properties": {
-          "enabled": {
-            "type": "boolean"
           }
         }
       },
