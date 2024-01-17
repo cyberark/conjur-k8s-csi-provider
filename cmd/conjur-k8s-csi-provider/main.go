@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/cyberark/conjur-authn-k8s-client/pkg/log"
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/provider"
 )
 
@@ -43,17 +43,17 @@ func main() {
 
 	select {
 	case err := <-providerErr:
-		log.Printf("CSI provider server failed: %v", err)
+		log.Error("CSI provider server failed: %v", err)
 		exitCode = 1
 	case err := <-healthErr:
-		log.Printf("CSI provider health server failed: %v", err)
+		log.Error("CSI provider health server failed: %v", err)
 		exitCode = 1
 	case <-stop:
 	}
 
 	err := healthServer.Stop()
 	if err != nil {
-		log.Printf("Failed to stop the CSI provider health server: %v", err)
+		log.Error("Failed to stop the CSI provider health server: %v", err)
 		exitCode = 1
 	}
 

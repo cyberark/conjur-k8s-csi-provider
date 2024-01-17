@@ -5,10 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	stdlog "log"
 	"net"
 	"testing"
 
+	"github.com/cyberark/conjur-authn-k8s-client/pkg/log"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/secrets-store-csi-driver/provider/v1alpha1"
@@ -62,7 +63,7 @@ func TestNewServerWithDeps(t *testing.T) {
 			description: "provider server warns against using non-standard providers dir",
 			socketPath:  "/non/standard/path/to/conjur.sock",
 			assertions: func(t *testing.T, c *ConjurProviderServer, logs bytes.Buffer) {
-				assert.Contains(t, logs.String(), "WARNING")
+				assert.Contains(t, logs.String(), "WARN")
 				assert.Contains(t, logs.String(), "Using non-standard providers directory /non/standard/path/to")
 				assert.Contains(t, logs.String(), "Ensure this directory has been configured on your CSI Driver before proceeding")
 			},
@@ -98,7 +99,7 @@ func TestNewServerWithDeps(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			var logBuffer bytes.Buffer
-			log.SetOutput(&logBuffer)
+			log.InfoLogger = stdlog.New(&logBuffer, "", 0)
 
 			p := newServerWithDeps(
 				tc.socketPath,

@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/cyberark/conjur-api-go v0.11.1
+	github.com/cyberark/conjur-authn-k8s-client v0.26.1
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/grpc v1.58.3
 	gopkg.in/yaml.v3 v3.0.1

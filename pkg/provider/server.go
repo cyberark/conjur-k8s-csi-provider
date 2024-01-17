@@ -3,11 +3,11 @@ package provider
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"path/filepath"
 	"strings"
 
+	"github.com/cyberark/conjur-authn-k8s-client/pkg/log"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/secrets-store-csi-driver/provider/v1alpha1"
 )
@@ -46,7 +46,7 @@ func newServerWithDeps(
 	mountFunc func(context.Context, *v1alpha1.MountRequest) (*v1alpha1.MountResponse, error),
 	versionFunc func(context.Context, *v1alpha1.VersionRequest) (*v1alpha1.VersionResponse, error),
 ) *ConjurProviderServer {
-	log.Println("Creating and registering gRPC server...")
+	log.Info("Creating and registering gRPC server...")
 	validateSocket(socketPath)
 
 	grpcServer := grpcFactory()
@@ -75,17 +75,17 @@ func (c *ConjurProviderServer) startWithDeps(
 		return fmt.Errorf("failed to start socket listener: %w", err)
 	}
 
-	log.Printf("Serving gRPC server on socket %s...\n", socketPath)
+	log.Info("Serving gRPC server on socket %s...", socketPath)
 	return c.grpcServer.Serve(c.listener)
 }
 
 // Stop halts the gRPC server and closes the socket listener.
 func (c *ConjurProviderServer) Stop() {
-	log.Println("Stopping gRPC server...")
+	log.Info("Stopping gRPC server...")
 
 	c.grpcServer.GracefulStop()
 
-	log.Println("gRPC server stopped.")
+	log.Info("gRPC server stopped.")
 }
 
 func (c *ConjurProviderServer) Mount(ctx context.Context, req *v1alpha1.MountRequest) (*v1alpha1.MountResponse, error) {
@@ -101,8 +101,8 @@ func validateSocket(path string) {
 	if !strings.HasPrefix(dir, "/var/run/secrets-store-csi-providers") &&
 		!strings.HasPrefix(dir, "/etc/kubernetes/secrets-store-csi-providers") {
 
-		log.Printf("WARNING: Using non-standard providers directory %s: "+
-			"Ensure this directory has been configured on your CSI Driver before proceeding\n",
+		log.Warn("Using non-standard providers directory %s: "+
+			"Ensure this directory has been configured on your CSI Driver before proceeding",
 			dir,
 		)
 	}
