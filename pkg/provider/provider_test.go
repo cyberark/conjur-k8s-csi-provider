@@ -202,7 +202,7 @@ func TestVersion(t *testing.T) {
 			assertions: func(t *testing.T, resp *v1alpha1.VersionResponse, err error) {
 				assert.Nil(t, err)
 				assert.Equal(t, "conjur", resp.RuntimeName)
-				assert.Equal(t, "0.0.1", resp.RuntimeVersion)
+				assert.Equal(t, "0.1.0", resp.RuntimeVersion)
 			},
 		},
 	}
