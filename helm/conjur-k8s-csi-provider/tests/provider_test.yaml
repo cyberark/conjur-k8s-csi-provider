@@ -1,16 +1,21 @@
 # Helm unit test to be used with the 'helm-unittest' Helm plugin.
 # Reference: https://github.com/quintush/helm-unittest/blob/master/DOCUMENT.md
 
-suite: test conjur-k8s-csi-provider
+suite: test provider
 
 templates:
   - provider.yaml
 
 defaults: &defaultRequired
-  providerServer.name: test-name
-  providerServer.image.repo: test-image
-  providerServer.image.tag: 0.0.0
-  providerServer.image.pullPolicy: Never
+  daemonSet.name: test-name
+  daemonSet.image.repo: test-image
+  daemonSet.image.tag: 0.0.0
+  daemonSet.image.pullPolicy: Never
+  provider.name: test-provider-name
+  provider.healthPort: 1234
+  provider.socketDir: /test/path
+  securityContext: { this: that }
+  serviceAccount.name: test-sa
 
 tests:
   #=======================================================================
@@ -34,11 +39,26 @@ tests:
           path: spec.selector.matchLabels.name
           value: test-name
       - equal:
+          path: spec.template.spec.containers[0].args[0]
+          value: -socketPath=/test/path/test-provider-name.sock
+      - equal:
+          path: spec.template.spec.containers[0].args[1]
+          value: -healthPort=1234
+      - equal:
           path: spec.template.spec.containers[0].image
           value: test-image:0.0.0
       - equal:
           path: spec.template.spec.containers[0].imagePullPolicy
           value: Never
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.privileged
+          value: false
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: test-sa
 
   #=======================================================================
   - it: uses default values if none provided
@@ -58,11 +78,26 @@ tests:
           path: spec.selector.matchLabels.name
           value: conjur-k8s-csi-provider
       - equal:
+          path: spec.template.spec.containers[0].args[0]
+          value: -socketPath=/var/run/secrets-store-csi-providers/conjur.sock
+      - equal:
+          path: spec.template.spec.containers[0].args[1]
+          value: -healthPort=8080
+      - equal:
           path: spec.template.spec.containers[0].image
           value: cyberark/conjur-k8s-csi-provider:latest
       - equal:
           path: spec.template.spec.containers[0].imagePullPolicy
           value: IfNotPresent
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.privileged
+          value: false
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: conjur-k8s-csi-provider
 
   #=======================================================================
   - it: allows setting labels and annotations on the provider pod
@@ -89,3 +124,30 @@ tests:
       - equal:
           path: spec.template.metadata.annotations.key
           value: annotationValue
+
+  #=======================================================================
+  - it: allows setting custom security configuration on the provider container
+  #=======================================================================
+    set:
+      <<: *defaultRequired
+      securityContext.privileged: true
+      securityContext.runAsNotRoot: true
+      securityContext.runAsUser: 555
+
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: DaemonSet
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.privileged
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 555
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNotRoot
+          value: true

@@ -16,7 +16,6 @@ RUN update-ca-certificates
 WORKDIR /conjur-k8s-csi-provider
 
 COPY go.mod go.sum /conjur-k8s-csi-provider/
-RUN go mod download
 
 COPY . .
 

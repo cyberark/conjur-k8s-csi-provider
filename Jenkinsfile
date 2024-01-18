@@ -5,7 +5,10 @@ properties([
   // Include the automated release parameters for the build
   release.addParams(),
   // Dependencies of the project that should trigger builds
-  dependencies([])
+  dependencies([
+    'conjur-enterprise/conjur-authn-k8s-client',
+    'conjur-enterprise/conjur-api-go'
+  ])
 ])
 
 // Performs release promotion.  No other stages will be run
@@ -80,13 +83,27 @@ pipeline {
       }
     }
 
-    stage('Build Docker image') {
-          steps {
-            script {
-              infrapool.agentSh 'bin/build'
-            }
+    stage('Get latest upstream dependencies') {
+      steps {
+        script {
+          withCredentials([usernamePassword(credentialsId: 'jenkins_ci_token', usernameVariable: 'GITHUB_USER', passwordVariable: 'TOKEN')]) {
+            sh './bin/updateGoDependencies.sh -g "${WORKSPACE}/go.mod"'
           }
+          // Copy the vendor directory onto infrapool
+          infrapool.agentPut from: "vendor", to: "${WORKSPACE}"
+          infrapool.agentPut from: "go.*", to: "${WORKSPACE}"
+          infrapool.agentPut from: "/root/go", to: "/var/lib/jenkins/"
         }
+      }
+    }
+
+    stage('Build Docker image') {
+      steps {
+        script {
+          infrapool.agentSh 'bin/build'
+        }
+      }
+    }
 
     stage('Scan Docker Image') {
       parallel {

@@ -127,8 +127,8 @@ helm install secrets-store-csi-driver \
 helm install \
   --wait \
   --namespace kube-system \
-  --set providerServer.image.repo="conjur-csi-provider" \
-  --set providerServer.image.tag="latest" \
+  --set daemonSet.image.repo="conjur-csi-provider" \
+  --set daemonSet.image.tag="latest" \
   conjur-provider \
   ./helm/conjur-k8s-csi-provider
 

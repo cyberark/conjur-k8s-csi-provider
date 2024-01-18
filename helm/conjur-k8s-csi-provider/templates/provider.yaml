@@ -1,8 +1,11 @@
+{{- if not (isAbs .Values.provider.socketDir) -}}
+{{- fail "value for .Values.provider.socketDir must be absolute directory path" -}}
+{{- end -}}
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: {{ .Values.providerServer.name }}
+  name: {{ .Values.daemonSet.name }}
   namespace: {{ .Release.Namespace }}
 {{- with .Values.labels }}
   labels:
@@ -15,14 +18,14 @@ metadata:
 spec:
   selector:
     matchLabels:
-      name: {{ .Values.providerServer.name }}
+      name: {{ .Values.daemonSet.name }}
 {{- with .Values.labels }}
 {{ toYaml . | indent 6 }}
 {{- end }}
   template:
     metadata:
       labels:
-        name: {{ .Values.providerServer.name }}
+        name: {{ .Values.daemonSet.name}}
 {{- with .Values.labels }}
 {{ toYaml . | indent 8 }}
 {{- end }}
@@ -31,31 +34,38 @@ spec:
 {{ toYaml . | indent 8 }}
 {{- end }}
     spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
       - name: conjur-provider
-        image: {{ .Values.providerServer.image.repo }}:{{ .Values.providerServer.image.tag }}
-        imagePullPolicy: {{ .Values.providerServer.image.pullPolicy }}
-        args: [ "-socket", "/etc/kubernetes/secrets-store-csi-providers/conjur.socket" ]
+        image: {{ .Values.daemonSet.image.repo }}:{{ .Values.daemonSet.image.tag }}
+        imagePullPolicy: {{ .Values.daemonSet.image.pullPolicy }}
+        args:
+          - -socketPath={{ .Values.provider.socketDir }}/{{ .Values.provider.name }}.sock
+          - -healthPort={{ .Values.provider.healthPort }}
         ports:
-        - containerPort: 8080
+        - containerPort: {{ .Values.provider.healthPort }}
         volumeMounts:
         - name: provider-volume
-          mountPath: "/etc/kubernetes/secrets-store-csi-providers"
+          mountPath: {{ .Values.provider.socketDir }}
         readinessProbe:
           httpGet:
             path: /healthz
-            port: 8080
+            port: {{ .Values.provider.healthPort }}
           initialDelaySeconds: 5
           periodSeconds: 5
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 8080
+            port: {{ .Values.provider.healthPort }}
           initialDelaySeconds: 30
           periodSeconds: 30
+{{- if not (empty .Values.securityContext) }}
         securityContext:
-          allowPrivilegeEscalation: false
+{{- with .Values.securityContext }}
+{{ toYaml . | indent 10 }}
+{{- end }}
+{{- end }}
       volumes:
       - name: provider-volume
         hostPath:
-          path: "/etc/kubernetes/secrets-store-csi-providers"
+          path: {{ .Values.provider.socketDir }}
