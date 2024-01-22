@@ -126,7 +126,7 @@ func TestStart(t *testing.T) {
 				return nil, errors.New("listener msg")
 			},
 			assertions: func(t *testing.T, err error) {
-				assert.Equal(t, "failed to start listener: listener msg", err.Error())
+				assert.Equal(t, "failed to start socket listener: listener msg", err.Error())
 			},
 		},
 		{
@@ -163,21 +163,11 @@ func TestStart(t *testing.T) {
 func TestStop(t *testing.T) {
 	testCases := []struct {
 		description string
-		closeErr    error
-		assertions  func(*testing.T, error)
+		assertions  func(*testing.T)
 	}{
 		{
-			description: "listener close fails",
-			closeErr:    errors.New("close msg"),
-			assertions: func(t *testing.T, err error) {
-				assert.Equal(t, "close msg", err.Error())
-				assert.True(t, stopped)
-			},
-		},
-		{
 			description: "happy path",
-			assertions: func(t *testing.T, err error) {
-				assert.Nil(t, err)
+			assertions: func(t *testing.T) {
 				assert.True(t, stopped)
 			},
 		},
@@ -193,9 +183,7 @@ func TestStop(t *testing.T) {
 				}
 			}
 			listenerFactory := func(string, string) (net.Listener, error) {
-				return mockListener{
-					close: func() error { return tc.closeErr },
-				}, nil
+				return mockListener{}, nil
 			}
 
 			p := newServerWithDeps(grpcFactory, nil, nil)
@@ -203,8 +191,8 @@ func TestStop(t *testing.T) {
 			assert.Nil(t, err)
 			stopped = false
 
-			err = p.Stop()
-			tc.assertions(t, err)
+			p.Stop()
+			tc.assertions(t)
 		})
 	}
 }
