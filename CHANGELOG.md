@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [0.0.2] - 2023-01-22
+
+### Fixed
+- Fixed an error in Provider termination which prevented the socket used to
+  connect to the Secrets Store CSI Driver from being closed and removed.
+  [Conjur-Enterprise/conjur-k8s-csi-provider#20](https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/pull/20)
+
+### Added
+- Added additional logging to gRPC and HTTP servers.
+  [Conjur-Enterprise/conjur-k8s-csi-provider#20](https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/pull/20)
+
 ## [0.0.1] - 2023-12-26
 
 ### Added
