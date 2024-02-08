@@ -32,6 +32,7 @@ helm repo update
 docker pull cyberark/conjur-cli:8
 docker pull alpine:latest
 docker build -t conjur-csi-provider:latest \
+  --target conjur-k8s-csi-provider \
   --no-cache \
   -f Dockerfile \
   .

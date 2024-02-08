@@ -1,5 +1,3 @@
-
-
 #!/bin/bash
 
 set -e
@@ -62,14 +60,20 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+readonly REDHAT_LOCAL_IMAGE="conjur-k8s-csi-provider-redhat"
 readonly IMAGE_NAME="conjur-k8s-csi-provider"
 readonly REGISTRY='cyberark'
 readonly LOCAL_REGISTRY='registry.tld'
+readonly REDHAT_REGISTRY="quay.io"
+readonly REDHAT_CERT_PID="65a80cc827baac6bf0816f1d"
 # Version derived from CHANGELOG and automated release library
 VERSION=$(<VERSION)
 readonly VERSION
 FULL_VERSION_TAG="$VERSION-$(git_tag)"
 readonly FULL_VERSION_TAG
+
+REDHAT_REMOTE_IMAGE="${REDHAT_REGISTRY}/redhat-isv-containers/${REDHAT_CERT_PID}"
+REDHAT_USER="redhat-isv-containers+${REDHAT_CERT_PID}-robot"
 
 if [[ ${PUBLISH_INTERNAL} = true ]]; then
   echo "Publishing built images internally to registry.tld."
@@ -77,6 +81,7 @@ if [[ ${PUBLISH_INTERNAL} = true ]]; then
   REMOTE_TAG=$VERSION
 
   tag_and_push "${IMAGE_NAME}:${SOURCE_TAG}" "${LOCAL_REGISTRY}/${IMAGE_NAME}:${REMOTE_TAG}"
+  tag_and_push "${REDHAT_LOCAL_IMAGE}:${SOURCE_TAG}" "${LOCAL_REGISTRY}/${REDHAT_LOCAL_IMAGE}:${REMOTE_TAG}"
 fi
 
 if [[ ${PUBLISH_EDGE} = true ]]; then
@@ -114,6 +119,26 @@ if [[ ${PROMOTE} = true ]]; then
   for tag in "${TAGS[@]}" $(gen_versions "$REMOTE_TAG"); do
     echo "Tagging and pushing $REGISTRY/$IMAGE_NAME:$tag"
     tag_and_push "${LOCAL_REGISTRY}/$IMAGE_NAME:$SOURCE_TAG" "$REGISTRY/$IMAGE_NAME:$tag"
+    tag_and_push "${LOCAL_REGISTRY}/${REDHAT_LOCAL_IMAGE}:${SOURCE_TAG}" "$REGISTRY/${REDHAT_LOCAL_IMAGE}:$tag"
   done
+
+  # Publish only latest to Redhat Registries
+  echo "Tagging and pushing ${REDHAT_REMOTE_IMAGE} with tag ${REMOTE_TAG}"
+  docker tag "${LOCAL_REGISTRY}/${REDHAT_LOCAL_IMAGE}:${SOURCE_TAG}" "${REDHAT_REMOTE_IMAGE}:${REMOTE_TAG}"
+
+  # Publish RedHat image to RedHat Registry
+  if docker login "${REDHAT_REGISTRY}" -u "${REDHAT_USER}" -p "${REDHAT_API_KEY}"; then
+    # you can't push the same tag twice to redhat registry, so ignore errors
+    if ! docker push "${REDHAT_REMOTE_IMAGE}:${REMOTE_TAG}"; then
+      echo 'Red Hat push FAILED! (maybe the image was pushed already?)'
+      exit 0
+    fi
+
+    # scan image with preflight tool
+    scan_redhat_image "${REDHAT_REMOTE_IMAGE}:${REMOTE_TAG}" "${REDHAT_CERT_PID}"
+  else
+    echo 'Failed to log in to quay.io'
+    exit 1
+  fi
 
 fi
