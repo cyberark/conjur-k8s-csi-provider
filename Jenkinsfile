@@ -27,6 +27,8 @@ if (params.MODE == "PROMOTE") {
       bin/publish --promote --source ${sourceVersion} --target ${targetVersion}
     """
   }
+
+  release.copyEnterpriseRelease(params.VERSION_TO_PROMOTE)
   return
 }
 
