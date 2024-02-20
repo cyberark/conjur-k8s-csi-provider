@@ -24,7 +24,7 @@ if (params.MODE == "PROMOTE") {
       export PATH="release-tools/bin:${PATH}"
       docker pull registry.tld/conjur-k8s-csi-provider:${sourceVersion}
       # Promote source version to target version.
-      bin/publish --promote --source ${sourceVersion} --target ${targetVersion}
+      summon bin/publish --promote --source ${sourceVersion} --target ${targetVersion}
     """
   }
 

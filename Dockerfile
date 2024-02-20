@@ -21,10 +21,44 @@ RUN go build -o /conjur-csi-provider ./cmd/conjur-k8s-csi-provider/main.go
 #############
 # RUN STAGE #
 #############
-FROM alpine:3.19.0
+FROM alpine:3.19.0 as conjur-k8s-csi-provider
 LABEL org.opencontainers.image.authors="CyberArk Software Ltd."
 LABEL id="conjur-k8s-csi-provider"
 
+COPY --from=builder /conjur-csi-provider /conjur-csi-provider
+
+ENTRYPOINT [ "/conjur-csi-provider" ]
+
+
+################
+# REDHAT IMAGE #
+################
+FROM registry.access.redhat.com/ubi9/ubi as conjur-k8s-csi-provider-redhat
+
+ARG VERSION
+
+LABEL org.opencontainers.image.authors="CyberArk Software Ltd."
+LABEL id="conjur-k8s-csi-provider"
+LABEL vendor="CyberArk"
+LABEL version="$VERSION"
+LABEL release="$VERSION"
+LABEL summary="Inject Conjur secrets into Kubernetes environments via Container Storage Interface volumes."
+LABEL description="Conjur's integration for the Kubernetes Secrets Store CSI Driver, which injects secrets into \
+Kubernetes environments via Container Storage Interface volumes."
+
+RUN yum -y distro-sync
+
+# Add a non-root user with permissions on the default socket dir.
+# NOTE: If deploying this image via the helm chart, the csi-provider
+# user will require special permissions on the host to access the
+# secrets-store-csi-provider socket directory which is volume mounted.
+RUN useradd -m csi-provider
+RUN mkdir -p /var/run/secrets-store-csi-providers /licenses
+RUN chown -R csi-provider:0 /var/run/secrets-store-csi-providers
+
+USER csi-provider
+
+ADD LICENSE /licenses
 COPY --from=builder /conjur-csi-provider /conjur-csi-provider
 
 ENTRYPOINT [ "/conjur-csi-provider" ]

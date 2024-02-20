@@ -28,6 +28,7 @@ function build_docker_image() {
   echo "Building conjur-k8s-csi-provider:$FULL_VERSION_TAG Docker image"
 
   docker build \
+    --target "conjur-k8s-csi-provider" \
     --tag "conjur-k8s-csi-provider:dev" \
     --tag "conjur-k8s-csi-provider:${FULL_VERSION_TAG}" \
     --tag "conjur-k8s-csi-provider:latest" \
@@ -35,6 +36,14 @@ function build_docker_image() {
 
   echo "---"
 
+  echo "Building conjur-k8s-csi-provider-redhat:$FULL_VERSION_TAG Docker image"
+
+  docker build \
+    --target conjur-k8s-csi-provider-redhat \
+    --build-arg VERSION="$FULL_VERSION_TAG" \
+    --tag "conjur-k8s-csi-provider-redhat:${FULL_VERSION_TAG}" \
+    --tag "conjur-k8s-csi-provider-redhat:latest" \
+    .
 }
 
 main
