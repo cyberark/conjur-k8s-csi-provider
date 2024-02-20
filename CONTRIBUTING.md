@@ -46,6 +46,9 @@ follow the instructions in this section.
 
 1. Review the git log and ensure the [changelog](CHANGELOG.md) contains all
    relevant recent changes with references to GitHub issues or PRs, if possible.
+   Also ensure the latest unreleased version is accurate - our pipeline generates 
+   a VERSION file based on the changelog, which is then used to assign the version
+   of the release and any release artifacts.
 1. Review the changes since the last tag, and if the dependencies have changed
    revise the [NOTICES](NOTICES.txt) to correctly capture the included
    dependencies and their licenses / copyrights.
@@ -53,15 +56,11 @@ follow the instructions in this section.
    written by TW, approved by PO/Engineer, and pushed to the forward-facing documentation.
 1. Scan the project for vulnerabilities
 
-### Update the version, changelog, and notices
+### Release and Promote
 
-1. Create a new branch for the version bump.
-1. Based on the changelog content, determine the new version number.
-1. Update this version in the following files:
-    1. [provider.go](pkg/provider/provider.go)
-    1. [Chart version](helm/conjur-k8s-csi-provider/Chart.yaml)
-1. Commit these changes - `Bump version to x.y.z` is an acceptable commit
-   message - and open a PR for review.
+1. Merging into main/master branches will automatically trigger a release. If successful, this release can be promoted at a later time.
+1. Jenkins build parameters can be utilized to promote a successful release or manually trigger aditional releases as needed.
+1. Reference the [internal automated release doc](https://github.com/conjurinc/docs/blob/master/reference/infrastructure/automated_releases.md#release-and-promotion-process) for releasing and promoting.
 
 ### Push Helm package
 
@@ -70,10 +69,3 @@ follow the instructions in this section.
     1. Move the Helm package file created in the previous step to the *docs* folder in the `helm-charts` repo.
     1. Go to the `helm-charts` repo root folder and execute the `reindex.sh` script file located there.
     1. Create a PR with those changes.
-
-### Release and Promote
-
-1. Merging into main/master branches will automatically trigger a release. If successful, this release can be promoted at a later time.
-1. Jenkins build parameters can be utilized to promote a successful release or manually trigger aditional releases as needed.
-1. Reference the [internal automated release doc](https://github.com/conjurinc/docs/blob/master/reference/infrastructure/automated_releases.md#release-and-promotion-process) for releasing and promoting.
-

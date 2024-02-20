@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/conjur"
@@ -195,14 +196,18 @@ func TestVersion(t *testing.T) {
 			},
 		},
 		{
-			description: "response includes hardcoded provider details",
+			description: "response includes provider details",
 			req: &v1alpha1.VersionRequest{
 				Version: "0.0.test",
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.VersionResponse, err error) {
 				assert.Nil(t, err)
 				assert.Equal(t, "conjur", resp.RuntimeName)
-				assert.Equal(t, "0.1.0", resp.RuntimeVersion)
+				expectedVersion, err := os.ReadFile("/conjur-k8s-csi-provider/VERSION")
+				if err != nil {
+					expectedVersion = []byte("0.0-dev")
+				}
+				assert.Equal(t, string(expectedVersion), resp.RuntimeVersion)
 			},
 		},
 	}
