@@ -10,13 +10,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
-## [0.0.3] - 2023-02-16
+## [0.1.1] - 2023-02-16
 
 ### Added
 - Include a Redhat UBI9 based Docker image.
   [Conjur-Enterprise/conjur-k8s-csi-provider#21](https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/pull/21)
 
-### Fixed
+## [0.1.0] - 2023-01-18
+
+### Added
 - Helm chart allows for customizing Provider container's `securityContext`.
   [Conjur-Enterprise/conjur-k8s-csi-provider#19](https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/pull/19)
 - Provider and Helm chart support customizable socket directory path and health
@@ -43,3 +45,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Initial release of Conjur Provider for Secrets Store CSI Driver
+
+[Unreleased]: https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/compare/v0.1.1...HEAD
+[0.1.1]: https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/compare/v0.0.2...v0.1.0
+[0.0.2]: https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/compare/v0.0.1...v0.0.2
+[0.0.1]: https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/releases/tag/v0.0.1
