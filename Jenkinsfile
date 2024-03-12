@@ -23,6 +23,7 @@ if (params.MODE == "PROMOTE") {
     infrapool.agentSh """
       export PATH="release-tools/bin:${PATH}"
       docker pull registry.tld/conjur-k8s-csi-provider:${sourceVersion}
+      docker pull registry.tld/conjur-k8s-csi-provider-redhat:${sourceVersion}
       # Promote source version to target version.
       summon bin/publish --promote --source ${sourceVersion} --target ${targetVersion}
     """
