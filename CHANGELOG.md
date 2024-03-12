@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
-## [0.1.1] - 2023-02-16
+## [0.1.1] - 2023-03-12
 
 ### Added
 - Include a Redhat UBI9 based Docker image.
