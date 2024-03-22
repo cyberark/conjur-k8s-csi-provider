@@ -11,9 +11,9 @@ RUN apt-get update -y && \
 RUN wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && \
     chmod +x /usr/bin/yq
 
-# Install Go 1.21.3
-RUN wget https://go.dev/dl/go1.21.3.linux-amd64.tar.gz && \
-    tar -xf go1.21.3.linux-amd64.tar.gz && \
+# Install Go 1.22.1
+RUN wget https://go.dev/dl/go1.22.1.linux-amd64.tar.gz && \
+    tar -xf go1.22.1.linux-amd64.tar.gz && \
     mv go /usr/local/
 ENV GOROOT=/usr/local/go
 ENV GOPATH=/root/go
