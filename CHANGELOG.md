@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [0.1.2] - 2024-03-22
+
+### Changed
+- Updated Go to 1.22 (CONJSE-1842)
+
 ## [0.1.1] - 2023-03-12
 
 ### Added
@@ -46,7 +51,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Initial release of Conjur Provider for Secrets Store CSI Driver
 
-[Unreleased]: https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/compare/v0.1.1...HEAD
+[Unreleased]: https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/compare/v0.1.2...HEAD
+[0.1.2]: https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/compare/v0.0.2...v0.1.0
 [0.0.2]: https://github.cyberng.com/Conjur-Enterprise/conjur-k8s-csi-provider/compare/v0.0.1...v0.0.2

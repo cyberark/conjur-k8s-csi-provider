@@ -8,7 +8,7 @@ For general contribution and community guidelines, please see the
 1. [git](https://git-scm.com/downloads) to manage source code
 2. [Docker](https://docs.docker.com/engine/installation) to manage dependencies
    and runtime environments
-3. [Go 1.21.0+](https://go.dev/doc/install) installed
+3. [Go 1.22.1+](https://go.dev/doc/install) installed
 
 ## Testing
 

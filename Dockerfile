@@ -1,7 +1,7 @@
 ###############
 # BUILD STAGE #
 ###############
-FROM golang:1.21-alpine AS builder
+FROM golang:1.22-alpine AS builder
 
 # On CyberArk dev laptops, golang module dependencies are downloaded with a
 # corporate proxy in the middle. For these connections to succeed we need to

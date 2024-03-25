@@ -1,6 +1,6 @@
 module github.com/cyberark/conjur-k8s-csi-provider
 
-go 1.20
+go 1.22.1
 
 require (
 	github.com/cyberark/conjur-api-go v0.11.1 // version will be ignored by auto release process
