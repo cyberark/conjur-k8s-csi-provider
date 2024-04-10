@@ -21,7 +21,7 @@ RUN go build -o /conjur-csi-provider ./cmd/conjur-k8s-csi-provider/main.go
 #############
 # RUN STAGE #
 #############
-FROM alpine:3.19.0 as conjur-k8s-csi-provider
+FROM alpine:3.19.1 as conjur-k8s-csi-provider
 LABEL org.opencontainers.image.authors="CyberArk Software Ltd."
 LABEL id="conjur-k8s-csi-provider"
 
