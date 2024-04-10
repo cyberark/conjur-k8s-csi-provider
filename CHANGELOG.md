@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [0.1.3] - 2024-04-10
+
+### Changed
+- Updated Alpine base image to 3.19.1 (CONJSE-1852)
+- Updated google.golang.org/grpc to v1.63.2 (CONJSE-1852)
+- Updated google.golang.org/protobuf to v1.33.0 (CONJSE-1852)
+- Updated golang.org/x/net to v0.24.0 (CONJSE-1852)
+
 ## [0.1.2] - 2024-03-22
 
 ### Changed
@@ -43,4 +51,3 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Initial release of Conjur Provider for Secrets Store CSI Driver
-
