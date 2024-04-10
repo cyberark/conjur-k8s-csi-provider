@@ -58,7 +58,10 @@ our certification levels, see
 
    The following policy YAML creates an AuthnJWT instance `kube` to authenticate
    workloads in Kubernetes using their ServiceAccount tokens, and permits the
-   created `host` to authenticate with the service.
+   created `host` to authenticate with the service. 
+   
+    > **Note**  
+    > Currently, use of the `token-app-property` variable is not supported.
 
    ```yaml
    - !policy
@@ -125,7 +128,7 @@ our certification levels, see
    ```
 
    Refer to our
-   [documentation](https://docs.cyberark.com/conjur-enterprise/12.5/en/Content/Operations/Services/cjr-authn-jwt-lp.htm)
+   [documentation](https://docs.cyberark.com/conjur-enterprise/latest/en/Content/Operations/Services/cjr-authn-jwt-lp.htm)
    for more information on JWT Authentication.
 
 2. Install the Secrets Store CSI Driver Helm chart
