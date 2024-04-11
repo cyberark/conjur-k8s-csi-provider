@@ -205,7 +205,7 @@ func TestVersion(t *testing.T) {
 				assert.Equal(t, "conjur", resp.RuntimeName)
 				expectedVersion, err := os.ReadFile("/conjur-k8s-csi-provider/VERSION")
 				if err != nil {
-					expectedVersion = []byte("0.0-dev")
+					expectedVersion = []byte("0.0")
 				}
 				assert.Equal(t, string(expectedVersion), resp.RuntimeVersion)
 			},

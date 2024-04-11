@@ -12,7 +12,6 @@ import (
 )
 
 const providerName = "conjur"
-const providerVersion = "0.0-dev"
 const saTokensKey = "csi.storage.k8s.io/serviceAccount.tokens"
 const configurationVersionKey = "conjur.org/configurationVersion"
 
@@ -41,7 +40,7 @@ func Version(ctx context.Context, req *v1alpha1.VersionRequest) (*v1alpha1.Versi
 	return &v1alpha1.VersionResponse{
 		Version:        req.GetVersion(),
 		RuntimeName:    providerName,
-		RuntimeVersion: providerVersion,
+		RuntimeVersion: ProviderVersion,
 	}, nil
 }
 

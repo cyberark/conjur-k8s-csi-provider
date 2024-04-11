@@ -28,6 +28,8 @@ function run_unit_tests() {
   docker run --rm \
     -v "$PWD/test/":/conjur-k8s-csi-provider/test/ \
     conjur-k8s-csi-provider-test-runner:latest \
+      -ldflags="-X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.ProviderVersion=$(version)' \
+        -X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.TagSuffix=$(git_tag_suffix)'" \
       -coverprofile="./test/c.out.tmp" \
       ./... \
       | tee -a "./test/$junit_output_file" && \

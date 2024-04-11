@@ -3,6 +3,10 @@
 ###############
 FROM golang:1.22-alpine AS builder
 
+# this value changes in ./bin/build
+ARG TAG_SUFFIX="dev"
+ARG VERSION="unreleased"
+
 # On CyberArk dev laptops, golang module dependencies are downloaded with a
 # corporate proxy in the middle. For these connections to succeed we need to
 # configure the proxy CA certificate in build containers.
@@ -16,7 +20,11 @@ RUN update-ca-certificates
 
 WORKDIR /conjur-k8s-csi-provider
 ADD . .
-RUN go build -o /conjur-csi-provider ./cmd/conjur-k8s-csi-provider/main.go
+RUN go build \
+    -ldflags="-X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.ProviderVersion=$VERSION' \
+      -X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.TagSuffix=$TAG_SUFFIX'" \
+    -o /conjur-csi-provider \
+    ./cmd/conjur-k8s-csi-provider/main.go
 
 #############
 # RUN STAGE #
