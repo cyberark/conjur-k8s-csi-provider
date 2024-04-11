@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
+	"github.com/cyberark/conjur-authn-k8s-client/pkg/log"
+	"github.com/cyberark/conjur-k8s-csi-provider/pkg/logmessages"
 )
 
 // ClientFactory returns an implementation of the Client interface given the
@@ -71,7 +73,8 @@ func (c *Config) authenticate(jwt string) ([]byte, error) {
 	pool := x509.NewCertPool()
 	ok := pool.AppendCertsFromPEM([]byte(c.SSLCert))
 	if !ok {
-		return nil, fmt.Errorf("can't append Conjur SSL cert")
+		log.Error(logmessages.CKCP014)
+		return nil, fmt.Errorf(logmessages.CKCP014)
 	}
 
 	transport := &http.Transport{
@@ -97,7 +100,8 @@ func (c *Config) authenticate(jwt string) ([]byte, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("request failed with status code %d", resp.StatusCode)
+		log.Error(logmessages.CKCP015, resp.StatusCode)
+		return nil, fmt.Errorf(logmessages.CKCP015, resp.StatusCode)
 	}
 
 	return io.ReadAll(resp.Body)
