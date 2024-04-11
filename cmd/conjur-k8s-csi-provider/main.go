@@ -17,6 +17,15 @@ func main() {
 	socketPath := flag.String("socketPath", provider.DefaultSocketPath, "Socket to expose Conjur Provider gRPC server")
 	flag.Parse()
 
+	if logLevel, ok := os.LookupEnv("LOG_LEVEL"); ok {
+		switch logLevel {
+		case "debug", "info", "warn", "error":
+			log.SetLogLevel(logLevel)
+		default:
+			break
+		}
+	}
+
 	var providerServer *provider.ConjurProviderServer
 	providerErr := make(chan error)
 	var healthServer *provider.HealthServer
