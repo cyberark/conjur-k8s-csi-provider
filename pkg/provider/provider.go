@@ -117,7 +117,8 @@ func NewConfig(req *v1alpha1.MountRequest) (*Config, error) {
 
 	attributes, err := parseRequestAttributes(req)
 	if err != nil {
-		return nil, err
+		log.Error(logmessages.CKCP032, err)
+		return nil, fmt.Errorf(logmessages.CKCP032, err)
 	}
 
 	configVersion := attributes[configurationVersionKey]
@@ -187,7 +188,8 @@ func parseSecrets(s string) (map[string]string, error) {
 	var intermediate []map[string]string
 	err := yaml.Unmarshal([]byte(s), &intermediate)
 	if err != nil {
-		return nil, err
+		log.Error(logmessages.CKCP033, err)
+		return nil, fmt.Errorf(logmessages.CKCP033, err)
 	}
 
 	returned := make(map[string]string, len(intermediate))
