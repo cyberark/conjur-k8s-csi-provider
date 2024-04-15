@@ -148,6 +148,10 @@ pipeline {
       }
     }
 
+    stage('Validate log messages') {
+      steps { validateLogMessages() }
+    }
+
     stage('Unit tests'){
       steps { script { infrapool.agentSh 'bin/test_unit' } }
     }
