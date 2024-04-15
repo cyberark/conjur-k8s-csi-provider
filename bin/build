@@ -11,11 +11,6 @@ cd $(dirname $0)/..
 
 . bin/utils
 
-VERSION=unreleased
-# Version derived from CHANGELOG and automated release library
-[ -f VERSION ] && VERSION=$(<VERSION)
-FULL_VERSION_TAG="$VERSION-$(git_tag)"
-
 echo "---"
 
 function main() {
@@ -25,23 +20,26 @@ function main() {
 
 function build_docker_image() {
 
-  echo "Building conjur-k8s-csi-provider:$FULL_VERSION_TAG Docker image"
+  echo "Building conjur-k8s-csi-provider:$(full_version_tag) Docker image"
 
   docker build \
     --target "conjur-k8s-csi-provider" \
+    --build-arg VERSION="$(version)" \
+    --build-arg TAG_SUFFIX="$(git_tag_suffix)" \
     --tag "conjur-k8s-csi-provider:dev" \
-    --tag "conjur-k8s-csi-provider:${FULL_VERSION_TAG}" \
+    --tag "conjur-k8s-csi-provider:$(full_version_tag)" \
     --tag "conjur-k8s-csi-provider:latest" \
     .
 
   echo "---"
 
-  echo "Building conjur-k8s-csi-provider-redhat:$FULL_VERSION_TAG Docker image"
+  echo "Building conjur-k8s-csi-provider-redhat:$(full_version_tag) Docker image"
 
   docker build \
     --target conjur-k8s-csi-provider-redhat \
-    --build-arg VERSION="$FULL_VERSION_TAG" \
-    --tag "conjur-k8s-csi-provider-redhat:${FULL_VERSION_TAG}" \
+    --build-arg VERSION="$(version)" \
+    --build-arg TAG_SUFFIX="$(git_tag_suffix)" \
+    --tag "conjur-k8s-csi-provider-redhat:$(full_version_tag)" \
     --tag "conjur-k8s-csi-provider-redhat:latest" \
     .
 }

@@ -94,15 +94,6 @@ pipeline {
       }
     }
 
-    // Updates the helm chart and Go module version based on the VERSION file
-    stage('Update Project versions') {
-      steps {
-        script {
-          infrapool.agentSh 'bin/update_version'
-        }
-      }
-    }
-
     stage('Get latest upstream dependencies') {
       steps {
         script {
@@ -155,6 +146,10 @@ pipeline {
           steps { script { infrapool.agentSh 'bin/test_helm_schema' } }
         }
       }
+    }
+
+    stage('Validate log messages') {
+      steps { validateLogMessages() }
     }
 
     stage('Unit tests'){

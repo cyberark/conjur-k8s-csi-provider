@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/cyberark/conjur-authn-k8s-client/pkg/log"
+	"github.com/cyberark/conjur-k8s-csi-provider/pkg/logmessages"
 	"sigs.k8s.io/secrets-store-csi-driver/provider/v1alpha1"
 )
 
@@ -49,17 +50,17 @@ func newHealthServerWithDeps(
 
 // Start serves the HealthServer's HTTP server on the given port.
 func (h *HealthServer) Start() error {
-	log.Info("Serving health server on port %d...", h.port)
+	log.Info(logmessages.CKCP024, h.port)
 	return h.server.ListenAndServe()
 }
 
 // Stop gracefully shuts down the HeathServer's HTTP server.
 func (h *HealthServer) Stop() error {
-	log.Info("Stopping health server...")
+	log.Info(logmessages.CKCP025)
 
 	err := h.server.Shutdown(context.TODO())
 	if err == nil {
-		log.Info("Health server stopped.")
+		log.Info(logmessages.CKCP026)
 	}
 
 	return err

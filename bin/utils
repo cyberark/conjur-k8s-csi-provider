@@ -5,7 +5,38 @@ set -euo pipefail
 ####
 # Functions to generate version numbers for this project
 ####
-git_tag() {
+function full_version_tag() {
+  local version
+  version=$(version)
+  if [[ -n "$(git_tag_suffix)" ]]; then
+    echo "${version}-$(git_tag_suffix)"
+  else
+    echo "${version}"
+  fi
+}
+
+function version() {
+  local version_file
+  version_file=$(repo_root)/VERSION
+  if [[ -f $version_file ]]; then
+    cat $version_file
+  else
+    echo "unreleased"
+  fi
+}
+
+# returns the git commit's hash only for non-fixed versions, empty otherwise.
+# which can be identified by the TAG_NAME variable.
+# The TAG_NAME variable is set automatically on tag-triggered builds for fixed versions.
+function git_tag_suffix() {
+  if [[ -z "${TAG_NAME:-}" ]]; then
+    echo "$(git_commit_short)"
+  else
+    echo ""
+  fi
+}
+
+function git_commit_short() {
   git rev-parse --short HEAD
 }
 

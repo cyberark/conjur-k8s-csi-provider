@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cyberark/conjur-authn-k8s-client/pkg/log"
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/conjur"
+	"github.com/cyberark/conjur-k8s-csi-provider/pkg/logmessages"
 	"gopkg.in/yaml.v3"
 	"sigs.k8s.io/secrets-store-csi-driver/provider/v1alpha1"
 )
 
 const providerName = "conjur"
-const providerVersion = "0.0-dev"
 const saTokensKey = "csi.storage.k8s.io/serviceAccount.tokens"
 const configurationVersionKey = "conjur.org/configurationVersion"
 
@@ -41,7 +42,7 @@ func Version(ctx context.Context, req *v1alpha1.VersionRequest) (*v1alpha1.Versi
 	return &v1alpha1.VersionResponse{
 		Version:        req.GetVersion(),
 		RuntimeName:    providerName,
-		RuntimeVersion: providerVersion,
+		RuntimeVersion: ProviderVersion,
 	}, nil
 }
 
@@ -52,7 +53,8 @@ func mountWithDeps(
 ) (*v1alpha1.MountResponse, error) {
 	cfg, err := NewConfig(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create configuration from mount request parameters: %w", err)
+		log.Error(logmessages.CKCP013, err)
+		return nil, fmt.Errorf(logmessages.CKCP013, err)
 	}
 
 	secretIDs := []string{}
@@ -68,7 +70,8 @@ func mountWithDeps(
 	)
 	secrets, err := conjClient.GetSecrets(cfg.token, secretIDs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Conjur secrets: %w", err)
+		log.Error(logmessages.CKCP016, err)
+		return nil, fmt.Errorf(logmessages.CKCP016, err)
 	}
 
 	objectVersion := []*v1alpha1.ObjectVersion{}
@@ -97,7 +100,8 @@ func parseRequestAttributes(req *v1alpha1.MountRequest) (map[string]string, erro
 
 	err := json.Unmarshal([]byte(req.GetAttributes()), &attributes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal attributes: %w", err)
+		log.Error(logmessages.CKCP017, err)
+		return nil, fmt.Errorf(logmessages.CKCP017, err)
 	}
 
 	return attributes, nil
@@ -118,17 +122,20 @@ func NewConfig(req *v1alpha1.MountRequest) (*Config, error) {
 
 	configVersion := attributes[configurationVersionKey]
 	if len(configVersion) > 0 && configVersion != "0.1.0" {
-		return nil, fmt.Errorf("unsupported configuration version: %q", configVersion)
+		log.Error(logmessages.CKCP006, configVersion)
+		return nil, fmt.Errorf(logmessages.CKCP006, configVersion)
 	}
 
 	err = json.Unmarshal([]byte(attributes[saTokensKey]), &tokens)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal attribute %q: %w", saTokensKey, err)
+		log.Error(logmessages.CKCP007, saTokensKey, err)
+		return nil, fmt.Errorf(logmessages.CKCP007, saTokensKey, err)
 	}
 
 	token = tokens[providerName]["token"]
 	if token == "" {
-		return nil, fmt.Errorf("missing serviceaccount token for audience %q", providerName)
+		log.Error(logmessages.CKCP008, providerName)
+		return nil, fmt.Errorf(logmessages.CKCP008, providerName)
 	}
 
 	missingKeys := []string{}
@@ -138,22 +145,26 @@ func NewConfig(req *v1alpha1.MountRequest) (*Config, error) {
 		}
 	}
 	if len(missingKeys) > 0 {
-		return nil, fmt.Errorf("missing required Conjur config attributes: %q", missingKeys)
+		log.Error(logmessages.CKCP009, missingKeys)
+		return nil, fmt.Errorf(logmessages.CKCP009, missingKeys)
 	}
 
 	secretsStr = attributes["secrets"]
 	if secretsStr == "" {
-		return nil, fmt.Errorf("attribute \"secrets\" missing or empty")
+		log.Error(logmessages.CKCP010)
+		return nil, fmt.Errorf(logmessages.CKCP010)
 	}
 
 	secrets, err = parseSecrets(secretsStr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal secrets spec: %w", err)
+		log.Error(logmessages.CKCP011, err)
+		return nil, fmt.Errorf(logmessages.CKCP011, err)
 	}
 
 	err = json.Unmarshal([]byte(req.GetPermission()), &permissions)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal file permissions: %w", err)
+		log.Error(logmessages.CKCP012, err)
+		return nil, fmt.Errorf(logmessages.CKCP012, err)
 	}
 
 	return &Config{

@@ -12,11 +12,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.1.3] - 2024-04-10
 
+### Added
+- Added support for configurable log levels using the `LOG_LEVEL` environment
+  variable (CNJR-3733)
+
 ### Changed
 - Updated Alpine base image to 3.19.1 (CONJSE-1852)
 - Updated google.golang.org/grpc to v1.63.2 (CONJSE-1852)
 - Updated google.golang.org/protobuf to v1.33.0 (CONJSE-1852)
 - Updated golang.org/x/net to v0.24.0 (CONJSE-1852)
+- Updated log messages with unique identifiers (CNJR-3733)
 
 ## [0.1.2] - 2024-03-22
 

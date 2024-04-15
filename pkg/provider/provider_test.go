@@ -35,7 +35,7 @@ func TestMount(t *testing.T) {
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
-				assert.Contains(t, err.Error(), "failed to unmarshal attributes")
+				assert.Contains(t, err.Error(), "Failed to unmarshal attributes")
 			},
 		},
 		{
@@ -45,7 +45,7 @@ func TestMount(t *testing.T) {
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
-				assert.Contains(t, err.Error(), "unsupported configuration version")
+				assert.Contains(t, err.Error(), "Unsupported configuration version")
 			},
 		},
 		{
@@ -55,7 +55,7 @@ func TestMount(t *testing.T) {
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
-				assert.Contains(t, err.Error(), fmt.Sprintf("failed to unmarshal attribute %q", saTokensKey))
+				assert.Contains(t, err.Error(), fmt.Sprintf("Failed to unmarshal attribute %q", saTokensKey))
 			},
 		},
 		{
@@ -65,7 +65,7 @@ func TestMount(t *testing.T) {
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
-				assert.Contains(t, err.Error(), "missing serviceaccount token for audience \"conjur\"")
+				assert.Contains(t, err.Error(), "Missing serviceaccount token for audience \"conjur\"")
 			},
 		},
 		{
@@ -75,7 +75,7 @@ func TestMount(t *testing.T) {
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
-				assert.Contains(t, err.Error(), `missing required Conjur config attributes: ["account" "identity" "sslCertificate"]`)
+				assert.Contains(t, err.Error(), `Missing required Conjur config attributes: ["account" "identity" "sslCertificate"]`)
 			},
 		},
 		{
@@ -85,7 +85,7 @@ func TestMount(t *testing.T) {
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
-				assert.Contains(t, err.Error(), "attribute \"secrets\" missing or empty")
+				assert.Contains(t, err.Error(), "Attribute \"secrets\" missing or empty")
 			},
 		},
 		{
@@ -95,7 +95,7 @@ func TestMount(t *testing.T) {
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
-				assert.Contains(t, err.Error(), "failed to unmarshal secrets spec")
+				assert.Contains(t, err.Error(), "Failed to unmarshal secrets spec")
 			},
 		},
 		{
@@ -106,7 +106,7 @@ func TestMount(t *testing.T) {
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
-				assert.Contains(t, err.Error(), "failed to unmarshal file permissions")
+				assert.Contains(t, err.Error(), "Failed to unmarshal file permissions")
 			},
 		},
 		{
@@ -119,12 +119,12 @@ func TestMount(t *testing.T) {
 			conjurFactory: func(baseURL, authnID, account, identity, sslCert string) conjur.Client {
 				return &mockConjurClient{
 					resp: nil,
-					err:  errors.New("conjur error getting secrets"),
+					err:  errors.New("Conjur error getting secrets"),
 				}
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
 				assert.Nil(t, resp)
-				assert.Contains(t, err.Error(), "failed to get Conjur secrets")
+				assert.Contains(t, err.Error(), "Failed to get Conjur secrets")
 			},
 		},
 		{
@@ -205,7 +205,7 @@ func TestVersion(t *testing.T) {
 				assert.Equal(t, "conjur", resp.RuntimeName)
 				expectedVersion, err := os.ReadFile("/conjur-k8s-csi-provider/VERSION")
 				if err != nil {
-					expectedVersion = []byte("0.0-dev")
+					expectedVersion = []byte("0.0")
 				}
 				assert.Equal(t, string(expectedVersion), resp.RuntimeVersion)
 			},
