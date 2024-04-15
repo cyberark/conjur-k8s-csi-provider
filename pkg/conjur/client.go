@@ -88,14 +88,16 @@ func (c *Config) authenticate(jwt string) ([]byte, error) {
 		bytes.NewBufferString(data.Encode()),
 	)
 	if err != nil {
-		return nil, err
+		log.Error(logmessages.CKCP027, err)
+		return nil, fmt.Errorf(logmessages.CKCP027, err)
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		log.Error(logmessages.CKCP028, err)
+		return nil, fmt.Errorf(logmessages.CKCP028, err)
 	}
 	defer resp.Body.Close()
 
@@ -112,7 +114,8 @@ func (c *Config) authenticate(jwt string) ([]byte, error) {
 func (c *Config) GetSecrets(jwt string, secretIds []string) (map[string][]byte, error) {
 	authenticatedToken, err := c.authenticate(jwt)
 	if err != nil {
-		return nil, err
+		log.Error(logmessages.CKCP029, err)
+		return nil, fmt.Errorf(logmessages.CKCP029, err)
 	}
 
 	conjur, err := conjurapi.NewClientFromToken(
@@ -122,13 +125,15 @@ func (c *Config) GetSecrets(jwt string, secretIds []string) (map[string][]byte, 
 			SSLCert:      c.SSLCert,
 		}, string(authenticatedToken))
 	if err != nil {
-		return nil, err
+		log.Error(logmessages.CKCP030, err)
+		return nil, fmt.Errorf(logmessages.CKCP030, err)
 	}
 
 	secretValuesByID := map[string][]byte{}
 	secretValuesByFullID, err := conjur.RetrieveBatchSecretsSafe(secretIds)
 	if err != nil {
-		return nil, err
+		log.Error(logmessages.CKCP031, err)
+		return nil, fmt.Errorf(logmessages.CKCP031, err)
 	}
 
 	prefix := fmt.Sprintf("%s:variable:", c.Account)
