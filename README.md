@@ -178,15 +178,11 @@ our certification levels, see
    spec:
      provider: conjur
      parameters:
-       conjur.org/configurationVersion: 0.1.0
+       conjur.org/configurationVersion: 0.2.0
        account: myAccount
        applianceUrl: http://myorg.conjur.com
        authnId: authn-jwt/kube
        identity: host/workload-host
-       secrets: |
-         - "relative/path/fileA.txt": "db-credentials/url"
-         - "relative/path/fileB.txt": "db-credentials/username"
-         - "relative/path/fileC.txt": "db-credentials/password"
        sslCertificate: |
          -----BEGIN CERTIFICATE-----
          MIIDhDCCAmy...njemCrVXIWw==
@@ -198,17 +194,43 @@ our certification levels, see
 
 5. Deploy an application
 
-   Reference the `SecretProviderClass` in an application pod's volumes.
+   Define secrets in the application pod's `conjur.org/secrets` annotation and
+   reference the `SecretProviderClass` in the pod's volumes.
 
-   ```yaml
-   volumes:
-   - name: secrets-store-inline
-     csi:
-       driver: secrets-store.csi.k8s.io
-       readOnly: true
-       volumeAttributes:
-         secretProviderClass: "credentials-from-conjur"
-   ```
+```yaml
+  ---
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: app
+    namespace: app-namespace
+    annotations:
+      conjur.org/secrets: |
+        - "relative/path/fileA.txt": "db-credentials/url"
+        - "relative/path/fileB.txt": "db-credentials/username"
+        - "relative/path/fileC.txt": "db-credentials/password"
+  spec:
+    serviceAccountName: default
+    containers:
+      - name: app
+        image: alpine:latest
+        imagePullPolicy: Always
+        command: [ "/bin/sh", "-c", "--" ]
+        args: [ "while true; do sleep 30; done;" ]
+        volumeMounts:
+          - name: conjur-csi-provider-volume
+            mountPath: /mnt/secrets-store
+            readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+    volumes:
+      - name: conjur-csi-provider-volume
+        csi:
+          driver: 'secrets-store.csi.k8s.io'
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: conjur
+```
 
 ## Configuration
 
@@ -242,9 +264,9 @@ The following table lists the configurable parameters on the Conjur Provider's
 | `spec.parameters.account` | Conjur account used during authentication | `myAccount` |
 | `spec.parameters.applianceUrl` | Conjur Appliance URL | `https://myorg.conjur.com` |
 | `spec.parameters.authnId` | Type and service ID of desired Conjur authenticator | `authn-jwt/service-id` |
-| `spec.parameters.conjur.org/configurationVersion` | Conjur CSI Provider configuration version | `0.1.0` |
+| `spec.parameters.conjur.org/configurationVersion` | Conjur CSI Provider configuration version | `0.2.0` |
 | `spec.parameters.identity` | Conjur identity used during authentication and authorization | `botApp` |
-| `spec.parameters.secrets` | Multiline string describing map of relative filepaths to Conjur variable IDs | <pre>- "relative/path/fileA.txt": "conjur/path/varA"<br>- "relative/path/fileB.txt": "conjur/path/varB"</pre> |
+| `spec.parameters.secrets` | Multiline string describing map of relative filepaths to Conjur variable IDs. NOTE: This parameter is ignored when `conjur.org/configurationVersion` is 0.2.0 or higher. Instead use application pod annotations. | <pre>- "relative/path/fileA.txt": "conjur/path/varA"<br>- "relative/path/fileB.txt": "conjur/path/varB"</pre> |
 | `spec.parameters.sslCertificate` | Conjur Appliance certificate | <pre>-----BEGIN CERTIFICATE-----<br>MIIDhDCCAmy...njemCrVXIWw==<br>-----END CERTIFICATE----- |
 
 ## Contributing

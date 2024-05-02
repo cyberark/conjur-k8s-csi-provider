@@ -10,9 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
-## [0.1.3] - 2024-04-10
+## [0.2.0] - 2024-04-30
 
 ### Added
+- Support retrieving secrets definition from pod annotations (CNJR-4099)
 - Added support for configurable log levels using the `LOG_LEVEL` environment
   variable (CNJR-3733)
 
