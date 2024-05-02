@@ -4,6 +4,9 @@ kind: Pod
 metadata:
   name: app
   namespace: {{ .Release.Namespace }}
+  annotations:
+    conjur.org/secrets: |
+{{ .Values.conjur.secrets | indent 6 }}
 spec:
   serviceAccountName: default
   containers:

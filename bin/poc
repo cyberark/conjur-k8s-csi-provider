@@ -28,6 +28,15 @@ helm repo add cyberark --insecure-skip-tls-verify https://cyberark.github.io/hel
 helm repo add secrets-store-csi-driver --insecure-skip-tls-verify https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
 helm repo update
 
+# Deploy Secrets Store CSI Driver (start this ASAP so we can do other things in parallel)
+helm install secrets-store-csi-driver \
+  secrets-store-csi-driver/secrets-store-csi-driver \
+  --insecure-skip-tls-verify \
+  --namespace kube-system \
+  --set linux.image.pullPolicy="IfNotPresent" \
+  --set syncSecret.enabled="true" \
+  --set 'tokenRequests[0].audience=conjur'
+
 # Pull or build required images
 docker pull cyberark/conjur-cli:8
 docker pull alpine:latest
@@ -65,9 +74,9 @@ kubectl exec deployment/conjur-conjur-oss \
 admin_api_key="$(cat ./files/created_account | grep API | awk '{print $5}')"
 
 # Get Conjur certificate
-wget https://raw.githubusercontent.com/cyberark/conjur-authn-k8s-client/master/helm/conjur-config-cluster-prep/bin/get-conjur-cert.sh -O ./files/get-conjur-cert.sh
-chmod +x ./files/get-conjur-cert.sh
-echo 'Y' | ./files/get-conjur-cert.sh -i -u https://conjur-conjur-oss.conjur.svc.cluster.local
+CONJUR_URL="conjur-conjur-oss.conjur.svc.cluster.local"
+CONJUR_POD=$(kubectl get pods --namespace=conjur -l "app=conjur-oss" -o=jsonpath='{.items[0].metadata.name}')
+kubectl exec --namespace=conjur -c conjur-oss $CONJUR_POD -- sh -c "openssl s_client -showcerts -connect $CONJUR_URL:443 </dev/null 2>/dev/null | sed -n '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/p'" > files/conjur-cert.pem
 
 # Run Conjur CLI
 kubectl run conjur-cli-pod \
@@ -114,15 +123,8 @@ conjur variable set -i conjur/authn-jwt/kube/public-keys -v \$(cat /files/jwks)
 conjur variable set -i conjur/authn-jwt/kube/issuer -v \$(cat /files/issuer)
 "
 
-# Deploy Secrets Store CSI Driver
-helm install secrets-store-csi-driver \
-  secrets-store-csi-driver/secrets-store-csi-driver \
-  --insecure-skip-tls-verify \
-  --wait \
-  --namespace kube-system \
-  --set linux.image.pullPolicy="IfNotPresent" \
-  --set syncSecret.enabled="true" \
-  --set 'tokenRequests[0].audience=conjur'
+# Ensure the Secrets Store CSI Driver is ready
+kubectl wait --for condition=established --timeout=60s crd/secretproviderclasses.secrets-store.csi.x-k8s.io
 
 # Deploy Conjur provider from Helm chart
 helm install \
@@ -133,13 +135,16 @@ helm install \
   conjur-provider \
   ./helm/conjur-k8s-csi-provider
 
-# Deploy the app
+# Deploy the app 
+# conjur.configurationVersion=0.1.0 - secrets set in SecretProviderClass
+# conjur.configurationVersion=0.2.0 (default) - secrets set in application pod
 helm install test-app ./helm/test-app \
   --wait \
+  --set conjur.configurationVersion=0.2.0 \
+  --set conjur.sslCertificate="$(cat ./files/conjur-cert.pem)" \
   --set conjur.secrets="- \"relative/path/fileA.txt\": \"db-credentials/url\"
 - \"relative/path/fileB.txt\": \"db-credentials/username\"
-- \"relative/path/fileC.txt\": \"db-credentials/password\"" \
-  --set conjur.sslCertificate="$(cat ./files/conjur-cert.pem)"
+- \"relative/path/fileC.txt\": \"db-credentials/password\""
 
 # Assertions
 fileA_content="$(kubectl exec pod/app -n csi -- cat /mnt/secrets-store/relative/path/fileA.txt)"

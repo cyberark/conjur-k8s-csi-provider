@@ -8,14 +8,19 @@ import (
 
 	"github.com/cyberark/conjur-authn-k8s-client/pkg/log"
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/conjur"
+	"github.com/cyberark/conjur-k8s-csi-provider/pkg/k8s"
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/logmessages"
+	"github.com/hashicorp/go-version"
 	"gopkg.in/yaml.v3"
 	"sigs.k8s.io/secrets-store-csi-driver/provider/v1alpha1"
 )
 
 const providerName = "conjur"
 const saTokensKey = "csi.storage.k8s.io/serviceAccount.tokens"
+const podNameKey = "csi.storage.k8s.io/pod.name"
+const podNamespaceKey = "csi.storage.k8s.io/pod.namespace"
 const configurationVersionKey = "conjur.org/configurationVersion"
+const secretsAnnotationKey = "conjur.org/secrets"
 
 // Config contains information parses from a Mount request that is required for
 // authenticating with Conjur and retrieving secrets.
@@ -32,9 +37,7 @@ type Config struct {
 
 // Mount implements a volume mount operation in the Conjur provider
 func Mount(ctx context.Context, req *v1alpha1.MountRequest) (*v1alpha1.MountResponse, error) {
-	return mountWithDeps(
-		ctx, req, conjur.NewClient,
-	)
+	return mountWithDeps(ctx, req, conjur.NewClient, k8s.GetPodAnnotations)
 }
 
 // Version returns Conjur provider runtime details
@@ -50,8 +53,9 @@ func mountWithDeps(
 	ctx context.Context,
 	req *v1alpha1.MountRequest,
 	conjurFactory conjur.ClientFactory,
+	getAnnotationsFunc k8s.GetPodAnnotationsFunc,
 ) (*v1alpha1.MountResponse, error) {
-	cfg, err := NewConfig(req)
+	cfg, err := NewConfig(req, getAnnotationsFunc)
 	if err != nil {
 		log.Error(logmessages.CKCP013, err)
 		return nil, fmt.Errorf(logmessages.CKCP013, err)
@@ -107,12 +111,13 @@ func parseRequestAttributes(req *v1alpha1.MountRequest) (map[string]string, erro
 	return attributes, nil
 }
 
-func NewConfig(req *v1alpha1.MountRequest) (*Config, error) {
+func NewConfig(req *v1alpha1.MountRequest, getAnnotationsFunc k8s.GetPodAnnotationsFunc) (*Config, error) {
 	var tokens map[string]map[string]string
 	var token string
 	var secretsStr string
 	var secrets map[string]string
 	var permissions os.FileMode
+	var configVersion *version.Version
 	var err error
 
 	attributes, err := parseRequestAttributes(req)
@@ -121,10 +126,17 @@ func NewConfig(req *v1alpha1.MountRequest) (*Config, error) {
 		return nil, fmt.Errorf(logmessages.CKCP032, err)
 	}
 
-	configVersion := attributes[configurationVersionKey]
-	if len(configVersion) > 0 && configVersion != "0.1.0" {
-		log.Error(logmessages.CKCP006, configVersion)
-		return nil, fmt.Errorf(logmessages.CKCP006, configVersion)
+	configVersionStr := attributes[configurationVersionKey]
+	switch configVersionStr {
+	case "0.1.0", "0.2.0":
+		log.Info(logmessages.CKCP040, configVersionStr)
+		configVersion, _ = version.NewVersion(configVersionStr)
+	case "":
+		log.Info(logmessages.CKCP041, "0.2.0")
+		configVersion, _ = version.NewVersion("0.2.0")
+	default:
+		log.Error(logmessages.CKCP006, configVersionStr)
+		return nil, fmt.Errorf(logmessages.CKCP006, configVersionStr)
 	}
 
 	err = json.Unmarshal([]byte(attributes[saTokensKey]), &tokens)
@@ -150,10 +162,24 @@ func NewConfig(req *v1alpha1.MountRequest) (*Config, error) {
 		return nil, fmt.Errorf(logmessages.CKCP009, missingKeys)
 	}
 
-	secretsStr = attributes["secrets"]
+	// Starting with configurationVersion 0.2.0, the 'secrets' attribute is
+	// retrieved from the 'conjur.org/secrets' annotation of the application pod.
+	// Prior to 0.2.0, the 'secrets' attribute is expected to be provided in the
+	// MountRequest attributes from the SecretProviderClass params.
+	annotationVersion, _ := version.NewVersion("0.2.0")
+	if configVersion.GreaterThanOrEqual(annotationVersion) {
+		secretsStr, err = retrievePodAnnotationSecrets(attributes, getAnnotationsFunc)
+		if err != nil {
+			log.Error(logmessages.CKCP035, err)
+			return nil, fmt.Errorf(logmessages.CKCP035, err)
+		}
+	} else {
+		secretsStr = attributes["secrets"]
+	}
+
 	if secretsStr == "" {
-		log.Error(logmessages.CKCP010)
-		return nil, fmt.Errorf(logmessages.CKCP010)
+		log.Error(logmessages.CKCP010, "secrets")
+		return nil, fmt.Errorf(logmessages.CKCP010, "secrets")
 	}
 
 	secrets, err = parseSecrets(secretsStr)
@@ -200,4 +226,22 @@ func parseSecrets(s string) (map[string]string, error) {
 	}
 
 	return returned, nil
+}
+
+// retrievePodAnnotationSecrets retrieves the annotation 'conjur.org/secrets'
+// from the pod that is associated with a given MountRequest. The annotation
+// value is assumed to match the YAML format expected by parseSecrets.
+func retrievePodAnnotationSecrets(attributes map[string]string, getAnnotationsFunc k8s.GetPodAnnotationsFunc) (string, error) {
+	annotations, err := getAnnotationsFunc(attributes[podNamespaceKey], attributes[podNameKey])
+	if err != nil {
+		log.Error(logmessages.CKCP033, err)
+		return "", fmt.Errorf(logmessages.CKCP033, err)
+	}
+
+	if annotations[secretsAnnotationKey] == "" {
+		log.Error(logmessages.CKCP034, secretsAnnotationKey)
+		return "", fmt.Errorf(logmessages.CKCP034, secretsAnnotationKey)
+	}
+
+	return annotations[secretsAnnotationKey], nil
 }
