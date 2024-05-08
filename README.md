@@ -229,7 +229,7 @@ our certification levels, see
           driver: 'secrets-store.csi.k8s.io'
           readOnly: true
           volumeAttributes:
-            secretProviderClass: conjur
+            secretProviderClass: "credentials-from-conjur"
 ```
 
 ## Configuration
