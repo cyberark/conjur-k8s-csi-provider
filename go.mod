@@ -5,6 +5,7 @@ go 1.22.1
 require (
 	github.com/cyberark/conjur-api-go v0.11.1 // version will be ignored by auto release process
 	github.com/cyberark/conjur-authn-k8s-client v0.26.1 // version will be ignored by auto release process
+	github.com/hashicorp/go-version v1.6.0
 	github.com/stretchr/testify v1.9.0
 	google.golang.org/grpc v1.63.2
 	gopkg.in/yaml.v3 v3.0.1
@@ -29,7 +30,6 @@ require (
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect

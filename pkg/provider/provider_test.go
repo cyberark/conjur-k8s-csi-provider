@@ -1,12 +1,15 @@
 package provider
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	stdlog "log"
 	"os"
 	"testing"
 
+	"github.com/cyberark/conjur-authn-k8s-client/pkg/log"
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/conjur"
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/k8s"
 	"github.com/stretchr/testify/assert"
@@ -28,14 +31,14 @@ func TestMount(t *testing.T) {
 		req                *v1alpha1.MountRequest
 		conjurFactory      conjur.ClientFactory
 		getAnnotationsFunc k8s.GetPodAnnotationsFunc
-		assertions         func(*testing.T, *v1alpha1.MountResponse, error)
+		assertions         func(*testing.T, *v1alpha1.MountResponse, error, bytes.Buffer)
 	}{
 		{
 			description: "throws error decoding invalid attributes",
 			req: &v1alpha1.MountRequest{
 				Attributes: "}invalid,json{",
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
 				assert.Contains(t, err.Error(), "Failed to unmarshal attributes")
 			},
@@ -45,7 +48,7 @@ func TestMount(t *testing.T) {
 			req: &v1alpha1.MountRequest{
 				Attributes: `{"conjur.org/configurationVersion": "0.3.0"}`,
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
 				assert.Contains(t, err.Error(), "Unsupported configuration version")
 			},
@@ -55,7 +58,7 @@ func TestMount(t *testing.T) {
 			req: &v1alpha1.MountRequest{
 				Attributes: "{\"csi.storage.k8s.io/serviceAccount.tokens\":\"invalid,json\"}",
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
 				assert.Contains(t, err.Error(), fmt.Sprintf("Failed to unmarshal attribute %q", saTokensKey))
 			},
@@ -65,7 +68,7 @@ func TestMount(t *testing.T) {
 			req: &v1alpha1.MountRequest{
 				Attributes: "{\"csi.storage.k8s.io/serviceAccount.tokens\":\"{}\"}",
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
 				assert.Contains(t, err.Error(), "Missing serviceaccount token for audience \"conjur\"")
 			},
@@ -75,35 +78,35 @@ func TestMount(t *testing.T) {
 			req: &v1alpha1.MountRequest{
 				Attributes: `{"applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
 				assert.Contains(t, err.Error(), `Missing required Conjur config attributes: ["account" "identity" "sslCertificate"]`)
 			},
 		},
 		{
-			description: "throws error when secrets attribute not included or empty (v0.1.0)",
+			description: "throws error when SecretProviderClass attribute not included or empty (v0.1.0)",
 			req: &v1alpha1.MountRequest{
 				Attributes: `{"conjur.org/configurationVersion":"0.1.0","secrets":"","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
 				assert.Contains(t, err.Error(), "Attribute \"secrets\" missing or empty")
 			},
 		},
 		{
-			description: "throws error when secrets attribute improperly formatted (v0.1.0)",
+			description: "throws error when SecretProviderClass attribute improperly formatted (v0.1.0)",
 			req: &v1alpha1.MountRequest{
 				Attributes: `{"conjur.org/configurationVersion":"0.1.0","secrets":"invalid","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
 				assert.Contains(t, err.Error(), "Failed to unmarshal secrets spec")
 			},
 		},
 		{
-			description: "throws error when secrets attribute not included or empty (v0.2.0)",
+			description: "throws error when both secrets annotation and SecretProviderClass attribute not included or empty (v0.2.0)",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"sslCertificate":"certificate content","secrets":"","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 			},
 			getAnnotationsFunc: func(namespace string, podName string) (map[string]string, error) {
 				return map[string]string{
@@ -111,13 +114,13 @@ func TestMount(t *testing.T) {
 					"some-other-annotation": "some-value",
 				}, nil
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
 				assert.Contains(t, err.Error(), "CKCP034 Annotation \"conjur.org/secrets\" missing or empty")
 			},
 		},
 		{
-			description: "throws error when secrets attribute improperly formatted (v0.2.0)",
+			description: "throws error when secrets annotation improperly formatted (v0.2.0)",
 			req: &v1alpha1.MountRequest{
 				Attributes: `{"sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 			},
@@ -127,7 +130,7 @@ func TestMount(t *testing.T) {
 					"some-other-annotation": "some-value",
 				}, nil
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
 				assert.Contains(t, err.Error(), "Failed to unmarshal secrets spec")
 			},
@@ -143,7 +146,7 @@ func TestMount(t *testing.T) {
 					"conjur.org/secrets": "- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n",
 				}, nil
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
 				assert.Contains(t, err.Error(), "Failed to unmarshal file permissions")
 			},
@@ -166,7 +169,7 @@ func TestMount(t *testing.T) {
 					err:  errors.New("Conjur error getting secrets"),
 				}
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
 				assert.Contains(t, err.Error(), "Failed to get Conjur secrets")
 			},
@@ -187,7 +190,7 @@ func TestMount(t *testing.T) {
 					err: nil,
 				}
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, err)
 
 				assert.Len(t, resp.ObjectVersion, 2)
@@ -214,9 +217,59 @@ func TestMount(t *testing.T) {
 			},
 		},
 		{
+			description: "happy path with fallback to SecretProviderClass attribute (v0.2.0)",
+			req: &v1alpha1.MountRequest{
+				Attributes: `{"sslCertificate":"certificate content","secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Permission: "777",
+				TargetPath: "/some/path",
+			},
+			conjurFactory: func(baseURL, authnID, account, identity, sslCert string) conjur.Client {
+				return &mockConjurClient{
+					resp: map[string][]byte{
+						"conjur/path/A": []byte("contentA"),
+						"conjur/path/B": []byte("contentB"),
+					},
+					err: nil,
+				}
+			},
+			getAnnotationsFunc: func(namespace string, podName string) (map[string]string, error) {
+				return map[string]string{
+					"some-annotation": "some-value",
+				}, nil
+			},
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
+				assert.Nil(t, err)
+
+				assert.Len(t, resp.ObjectVersion, 2)
+				assert.Len(t, resp.Files, 2)
+
+				assert.Contains(t, logs.String(), "WARN")
+				assert.Contains(t, logs.String(), "Defining secrets in the SecretProviderClass is deprecated")
+
+				assert.Contains(t, resp.ObjectVersion, &v1alpha1.ObjectVersion{
+					Id:      "conjur/path/A",
+					Version: "1",
+				})
+				assert.Contains(t, resp.ObjectVersion, &v1alpha1.ObjectVersion{
+					Id:      "conjur/path/B",
+					Version: "1",
+				})
+				assert.Contains(t, resp.Files, &v1alpha1.File{
+					Path:     "file/path/A",
+					Mode:     int32(777),
+					Contents: []byte("contentA"),
+				})
+				assert.Contains(t, resp.Files, &v1alpha1.File{
+					Path:     "file/path/B",
+					Mode:     int32(777),
+					Contents: []byte("contentB"),
+				})
+			},
+		},
+		{
 			description: "happy path (v0.2.0)",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"sslCertificate":"certificate content","secrets":"invalid ensuring annotation takes precedence","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 				Permission: "777",
 				TargetPath: "/some/path",
 			},
@@ -235,7 +288,7 @@ func TestMount(t *testing.T) {
 					"some-other-annotation": "some-value",
 				}, nil
 			},
-			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error) {
+			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, err)
 
 				assert.Len(t, resp.ObjectVersion, 2)
@@ -265,8 +318,10 @@ func TestMount(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
+			var logBuffer bytes.Buffer
+			log.InfoLogger = stdlog.New(&logBuffer, "", 0)
 			resp, err := mountWithDeps(context.TODO(), tc.req, tc.conjurFactory, tc.getAnnotationsFunc)
-			tc.assertions(t, resp, err)
+			tc.assertions(t, resp, err, logBuffer)
 		})
 	}
 }

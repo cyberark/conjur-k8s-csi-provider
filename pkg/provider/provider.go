@@ -170,8 +170,15 @@ func NewConfig(req *v1alpha1.MountRequest, getAnnotationsFunc k8s.GetPodAnnotati
 	if configVersion.GreaterThanOrEqual(annotationVersion) {
 		secretsStr, err = retrievePodAnnotationSecrets(attributes, getAnnotationsFunc)
 		if err != nil {
-			log.Error(logmessages.CKCP035, err)
-			return nil, fmt.Errorf(logmessages.CKCP035, err)
+			// Fallback to SecretProviderClass attributes and log a deprecation warning
+			// if they are still being used
+			if attributes["secrets"] != "" {
+				log.Warn(logmessages.CKCP042)
+				secretsStr = attributes["secrets"]
+			} else {
+				log.Error(logmessages.CKCP035, err)
+				return nil, fmt.Errorf(logmessages.CKCP035, err)
+			}
 		}
 	} else {
 		secretsStr = attributes["secrets"]
