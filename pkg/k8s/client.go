@@ -28,14 +28,18 @@ func configK8sClient() (*kubernetes.Clientset, error) {
 	log.Info(logmessages.CKCP036)
 	kubeConfig, err := rest.InClusterConfig()
 	if err != nil {
-		log.Error(logmessages.CKCP037, err.Error())
-		return nil, fmt.Errorf(logmessages.CKCP037, err.Error())
+		// Error messages returned from K8s should be printed only in debug mode
+		log.Debug(err.Error())
+		log.Error(logmessages.CKCP037)
+		return nil, fmt.Errorf(logmessages.CKCP037)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
-		log.Error(logmessages.CKCP038, err.Error())
-		return nil, fmt.Errorf(logmessages.CKCP038, err.Error())
+		// Error messages returned from K8s should be printed only in debug mode
+		log.Debug(err.Error())
+		log.Error(logmessages.CKCP038)
+		return nil, fmt.Errorf(logmessages.CKCP038)
 	}
 
 	return kubeClient, nil
