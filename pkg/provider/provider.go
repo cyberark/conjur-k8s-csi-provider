@@ -152,7 +152,8 @@ func NewConfig(req *v1alpha1.MountRequest, getAnnotationsFunc k8s.GetPodAnnotati
 	}
 
 	missingKeys := []string{}
-	for _, key := range []string{"account", "applianceUrl", "authnId", "identity", "sslCertificate"} {
+	// Don't check for 'identity' attribute since it is optional
+	for _, key := range []string{"account", "applianceUrl", "authnId", "sslCertificate"} {
 		if attributes[key] == "" {
 			missingKeys = append(missingKeys, key)
 		}

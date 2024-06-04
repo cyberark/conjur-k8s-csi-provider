@@ -1,6 +1,6 @@
 ---
 - !host
-  id: workload-host
+  id: system:serviceaccount:app-namespace:default
   annotations:
-    authn-jwt/kube/kubernetes.io/namespace: csi
+    authn-jwt/kube/kubernetes.io/namespace: app-namespace
     authn-jwt/kube/kubernetes.io/serviceaccount/name: default

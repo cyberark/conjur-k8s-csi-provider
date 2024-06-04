@@ -29,8 +29,8 @@
 
   # This variable tells Conjur which claim in the JWT to use to determine the
   # Conjur host identity.
-  # - !variable
-  #   id: token-app-property # Most likely set to "sub" for Kubernetes
+  - !variable
+    id: token-app-property # Most likely set to "sub" for Kubernetes
 
   # Used with 'token-app-property'.
   # This variable will hold the Conjur policy path that contains the Conjur
@@ -39,6 +39,6 @@
   #   id: identity-path
 
   - !permit
-    role: !host /workload-host
+    role: !host /system:serviceaccount:app-namespace:default
     privilege: [ read, authenticate ]
     resource: !webservice

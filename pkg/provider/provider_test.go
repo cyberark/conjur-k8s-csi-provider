@@ -80,13 +80,13 @@ func TestMount(t *testing.T) {
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
-				assert.Contains(t, err.Error(), `Missing required Conjur config attributes: ["account" "identity" "sslCertificate"]`)
+				assert.Contains(t, err.Error(), `Missing required Conjur config attributes: ["account" "sslCertificate"]`)
 			},
 		},
 		{
 			description: "throws error when SecretProviderClass attribute not included or empty (v0.1.0)",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"conjur.org/configurationVersion":"0.1.0","secrets":"","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"conjur.org/configurationVersion":"0.1.0","secrets":"","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
@@ -96,7 +96,7 @@ func TestMount(t *testing.T) {
 		{
 			description: "throws error when SecretProviderClass attribute improperly formatted (v0.1.0)",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"conjur.org/configurationVersion":"0.1.0","secrets":"invalid","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"conjur.org/configurationVersion":"0.1.0","secrets":"invalid","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 			},
 			assertions: func(t *testing.T, resp *v1alpha1.MountResponse, err error, logs bytes.Buffer) {
 				assert.Nil(t, resp)
@@ -106,7 +106,7 @@ func TestMount(t *testing.T) {
 		{
 			description: "throws error when both secrets annotation and SecretProviderClass attribute not included or empty (v0.2.0)",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"sslCertificate":"certificate content","secrets":"","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"sslCertificate":"certificate content","secrets":"","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 			},
 			getAnnotationsFunc: func(namespace string, podName string) (map[string]string, error) {
 				return map[string]string{
@@ -122,7 +122,7 @@ func TestMount(t *testing.T) {
 		{
 			description: "throws error when secrets annotation improperly formatted (v0.2.0)",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 			},
 			getAnnotationsFunc: func(namespace string, podName string) (map[string]string, error) {
 				return map[string]string{
@@ -138,7 +138,7 @@ func TestMount(t *testing.T) {
 		{
 			description: "throws error decoding invalid file permissions",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 				Permission: "abc",
 			},
 			getAnnotationsFunc: func(namespace string, podName string) (map[string]string, error) {
@@ -154,7 +154,7 @@ func TestMount(t *testing.T) {
 		{
 			description: "throws error when conjur client fails",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 				Permission: "777",
 				TargetPath: "/some/path",
 			},
@@ -177,7 +177,7 @@ func TestMount(t *testing.T) {
 		{
 			description: "happy path (v0.1.0)",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"conjur.org/configurationVersion":"0.1.0","secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"conjur.org/configurationVersion":"0.1.0","secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","sslCertificate":"certificate content","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 				Permission: "777",
 				TargetPath: "/some/path",
 			},
@@ -219,7 +219,7 @@ func TestMount(t *testing.T) {
 		{
 			description: "happy path with fallback to SecretProviderClass attribute (v0.2.0)",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"sslCertificate":"certificate content","secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"sslCertificate":"certificate content","secrets":"- \"file/path/A\": \"conjur/path/A\"\n- \"file/path/B\": \"conjur/path/B\"\n","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 				Permission: "777",
 				TargetPath: "/some/path",
 			},
@@ -269,7 +269,7 @@ func TestMount(t *testing.T) {
 		{
 			description: "happy path (v0.2.0)",
 			req: &v1alpha1.MountRequest{
-				Attributes: `{"sslCertificate":"certificate content","secrets":"invalid ensuring annotation takes precedence","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","identity":"botApp","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
+				Attributes: `{"sslCertificate":"certificate content","secrets":"invalid ensuring annotation takes precedence","account":"default","applianceUrl":"https://my.conjur.com","authnId":"authn-jwt/instance","csi.storage.k8s.io/serviceAccount.tokens":"{\"conjur\":{\"token\":\"sometoken\",\"expirationTimestamp\":\"2123-01-01T01:01:01Z\"}}"}`,
 				Permission: "777",
 				TargetPath: "/some/path",
 			},
@@ -352,7 +352,7 @@ func TestVersion(t *testing.T) {
 				assert.Equal(t, "conjur", resp.RuntimeName)
 				expectedVersion, err := os.ReadFile("/conjur-k8s-csi-provider/VERSION")
 				if err != nil {
-					expectedVersion = []byte("0.0")
+					expectedVersion = []byte("unreleased")
 				}
 				assert.Equal(t, string(expectedVersion), resp.RuntimeVersion)
 			},

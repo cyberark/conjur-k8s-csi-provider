@@ -20,8 +20,9 @@ if [[ "${CONTAINERIZED}" == "true" ]]; then
 fi
 
 # Create testing namespace
-kubectl create ns csi
-kubectl config set-context --current --namespace=csi
+APP_NAMESPACE=app-namespace
+kubectl create ns "$APP_NAMESPACE"
+kubectl config set-context --current --namespace="$APP_NAMESPACE"
 
 # Update Helm repos
 helm repo add cyberark --insecure-skip-tls-verify https://cyberark.github.io/helm-charts
@@ -121,6 +122,7 @@ conjur variable set -i db-credentials/password -v 'Sup3rSecretP@ssword'
 # Set variable values on authenticator
 conjur variable set -i conjur/authn-jwt/kube/public-keys -v \$(cat /files/jwks)
 conjur variable set -i conjur/authn-jwt/kube/issuer -v \$(cat /files/issuer)
+conjur variable set -i conjur/authn-jwt/kube/token-app-property -v 'sub'
 "
 
 # Ensure the Secrets Store CSI Driver is ready
@@ -135,11 +137,12 @@ helm install \
   conjur-provider \
   ./helm/conjur-k8s-csi-provider
 
-# Deploy the app 
+# Deploy the app
 # conjur.configurationVersion=0.1.0 - secrets set in SecretProviderClass
 # conjur.configurationVersion=0.2.0 (default) - secrets set in application pod
 helm install test-app ./helm/test-app \
   --wait \
+  --namespace "$APP_NAMESPACE" \
   --set conjur.configurationVersion=0.2.0 \
   --set conjur.sslCertificate="$(cat ./files/conjur-cert.pem)" \
   --set conjur.secrets="- \"relative/path/fileA.txt\": \"db-credentials/url\"
@@ -147,9 +150,9 @@ helm install test-app ./helm/test-app \
 - \"relative/path/fileC.txt\": \"db-credentials/password\""
 
 # Assertions
-fileA_content="$(kubectl exec pod/app -n csi -- cat /mnt/secrets-store/relative/path/fileA.txt)"
-fileB_content="$(kubectl exec pod/app -n csi -- cat /mnt/secrets-store/relative/path/fileB.txt)"
-fileC_content="$(kubectl exec pod/app -n csi -- cat /mnt/secrets-store/relative/path/fileC.txt)"
+fileA_content="$(kubectl exec pod/app -n "$APP_NAMESPACE" -- cat /mnt/secrets-store/relative/path/fileA.txt)"
+fileB_content="$(kubectl exec pod/app -n "$APP_NAMESPACE" -- cat /mnt/secrets-store/relative/path/fileB.txt)"
+fileC_content="$(kubectl exec pod/app -n "$APP_NAMESPACE" -- cat /mnt/secrets-store/relative/path/fileC.txt)"
 if [[ "$fileA_content" == "https://db.com" ]] && \
    [[ "$fileB_content" == "db_user" ]] && \
    [[ "$fileC_content" == "Sup3rSecretP@ssword" ]];
