@@ -24,6 +24,11 @@ go tool cover -html ./test/c.out -o ./test/c.html
 open ./test/c.html
 ```
 
+This project also includes end-to-end tests exercising core functionality. To run them:
+```sh
+./bin/test_e2e
+```
+
 ## Pull Request Workflow
 
 1. [Fork the project](https://help.github.com/en/github/getting-started-with-github/fork-a-repo)
@@ -46,13 +51,13 @@ follow the instructions in this section.
 
 1. Review the git log and ensure the [changelog](CHANGELOG.md) contains all
    relevant recent changes with references to GitHub issues or PRs, if possible.
-   Also ensure the latest unreleased version is accurate - our pipeline generates 
+   Also ensure the latest unreleased version is accurate - our pipeline generates
    a VERSION file based on the changelog, which is then used to assign the version
    of the release and any release artifacts.
 1. Review the changes since the last tag, and if the dependencies have changed
    revise the [NOTICES](NOTICES.txt) to correctly capture the included
    dependencies and their licenses / copyrights.
-1. Ensure that all documentation that needs to be written has been 
+1. Ensure that all documentation that needs to be written has been
    written by TW, approved by PO/Engineer, and pushed to the forward-facing documentation.
 1. Scan the project for vulnerabilities
 

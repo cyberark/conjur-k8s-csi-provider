@@ -5,16 +5,17 @@ Conjur's integration for the
 which injects secrets into Kubernetes environments via
 [Container Storage Interface](https://kubernetes-csi.github.io/docs/) volumes.
 
-  * [Certification level](#certification-level)
-  * [Requirements](#requirements)
-  * [Usage](#usage)
-  * [Configuration](#configuration)
-    + [Conjur Provider Helm chart](#conjur-provider-helm-chart)
-    + [`SecretProviderClass`](#-secretproviderclass-)
-  * [Contributing](#contributing)
-  * [Community Support](#community-support)
-  * [Code Maintainers](#code-maintainers)
-  * [License](#license)
+- [Conjur Provider for Secrets Store CSI Driver](#conjur-provider-for-secrets-store-csi-driver)
+  - [Certification level](#certification-level)
+  - [Requirements](#requirements)
+  - [Usage](#usage)
+  - [Configuration](#configuration)
+    - [Conjur Provider Helm chart](#conjur-provider-helm-chart)
+    - [`SecretProviderClass`](#secretproviderclass)
+  - [Contributing](#contributing)
+  - [Community Support](#community-support)
+  - [Code Maintainers](#code-maintainers)
+  - [License](#license)
 
 <!---<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>--->
 
@@ -50,18 +51,17 @@ our certification levels, see
 
    ```yaml
    - !host
-     id: workload-host
+     id: system:serviceaccount:app-namespace:default
      annotations:
        authn-jwt/kube/kubernetes.io/namespace: app-namespace
-       authn-jwt/kube/kubernetes.io/serviceaccount/name: sa-name
+       authn-jwt/kube/kubernetes.io/serviceaccount/name: default
    ```
 
    The following policy YAML creates an AuthnJWT instance `kube` to authenticate
    workloads in Kubernetes using their ServiceAccount tokens, and permits the
-   created `host` to authenticate with the service. 
-   
-    > **Note**  
-    > Currently, use of the `token-app-property` variable is not supported.
+   created `host` to authenticate with the service. The `host` ID is the value
+   of the claim in the JWT token specified by the `token-app-property`
+   authenticator variable.
 
    ```yaml
    - !policy
@@ -94,9 +94,9 @@ our certification levels, see
 
      # This variable tells Conjur which claim in the JWT to use to determine the
      # Conjur host identity.
-     # - !variable
-     #   id: token-app-property # Most likely set to "sub" for Kubernetes
-   
+     - !variable
+       id: token-app-property # Most likely set to "sub" for Kubernetes
+
      # Used with 'token-app-property'.
      # This variable will hold the Conjur policy path that contains the Conjur
      # host identity found by looking at the claim entered in token-app-property.
@@ -104,7 +104,7 @@ our certification levels, see
      #   id: identity-path
 
      - !permit
-       role: !host /workload-host
+       role: !host /system:serviceaccount:app-namespace:default
        privilege: [ read, authenticate ]
        resource: !webservice
    ```
@@ -122,7 +122,7 @@ our certification levels, see
        - !variable password
 
      - !permit
-       role: !host /workload-host
+       role: !host /system:serviceaccount:app-namespace:default
        privileges: [ read, execute ]
        resource: *variables
    ```
@@ -182,7 +182,6 @@ our certification levels, see
        account: myAccount
        applianceUrl: http://myorg.conjur.com
        authnId: authn-jwt/kube
-       identity: host/workload-host
        sslCertificate: |
          -----BEGIN CERTIFICATE-----
          MIIDhDCCAmy...njemCrVXIWw==
@@ -265,7 +264,7 @@ The following table lists the configurable parameters on the Conjur Provider's
 | `spec.parameters.applianceUrl` | Conjur Appliance URL | `https://myorg.conjur.com` |
 | `spec.parameters.authnId` | Type and service ID of desired Conjur authenticator | `authn-jwt/service-id` |
 | `spec.parameters.conjur.org/configurationVersion` | Conjur CSI Provider configuration version | `0.2.0` |
-| `spec.parameters.identity` | Conjur identity used during authentication and authorization | `botApp` |
+| `spec.parameters.identity` | Conjur identity used during authentication and authorization (Optional. Only used when `token-app-property` authenticator field is not used.) | `botApp` |
 | `spec.parameters.secrets` | Multiline string describing map of relative filepaths to Conjur variable IDs. NOTE: This parameter is ignored when `conjur.org/configurationVersion` is 0.2.0 or higher. Instead use application pod annotations. | <pre>- "relative/path/fileA.txt": "conjur/path/varA"<br>- "relative/path/fileB.txt": "conjur/path/varB"</pre> |
 | `spec.parameters.sslCertificate` | Conjur Appliance certificate | <pre>-----BEGIN CERTIFICATE-----<br>MIIDhDCCAmy...njemCrVXIWw==<br>-----END CERTIFICATE----- |
 

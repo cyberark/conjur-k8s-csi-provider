@@ -6,8 +6,8 @@
     - !variable url
     - !variable username
     - !variable password
-  
+
   - !permit
-    role: !host /workload-host
+    role: !host /system:serviceaccount:app-namespace:default
     privileges: [ read, execute ]
     resource: *variables
