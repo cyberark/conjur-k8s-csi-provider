@@ -50,6 +50,11 @@ gen_versions() {
   done
 }
 
+# remove the build number from the version for helm releases
+truncated_version() {
+  version | cut -d'-' -f1
+}
+
 function tag_and_push() {
   local source="$1"
   shift
