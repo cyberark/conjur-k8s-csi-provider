@@ -14,5 +14,5 @@ docker run --rm \
   -v $PWD/helm-artifacts/:/root/helm-artifacts \
   --workdir /root/helm-artifacts \
   alpine/helm:${helm_version} package \
-    --version "$(version)" \
+    --version "$(truncated_version)" \
     ../helm/conjur-k8s-csi-provider
