@@ -8,7 +8,7 @@ metadata:
     conjur.org/secrets: |
 {{ .Values.conjur.secrets | indent 6 }}
 spec:
-  serviceAccountName: default
+  serviceAccountName: {{ .Values.serviceAccount.name }}
   containers:
     - name: app
       image: alpine:latest

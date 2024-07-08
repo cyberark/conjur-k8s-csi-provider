@@ -1,28 +1,49 @@
 #!/usr/bin/env bash
 
-docker network create kind-network
-
 docker build \
   -f Dockerfile.e2e \
   -t conjur-k8s-csi-provider-e2e-runner:latest \
   .
 
-docker run --rm \
-  --network kind-network \
-  -v "$PWD":/src/conjur-k8s-csi-provider \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -w /src/conjur-k8s-csi-provider \
-  conjur-k8s-csi-provider-e2e-runner:latest \
-  bash -c "
-    ./bin/poc
-  "
-exit_code="$?"
+exit_code=0
+if [ "$1" == "openshift" ]; then
+  export SUMMON_ENV=${2:-current-dev}
+  summon --provider summon-conjur --environment $SUMMON_ENV \
+    docker run --rm \
+    -e OPENSHIFT_VERSION \
+    -e OPENSHIFT_URL \
+    -e OPENSHIFT_USERNAME \
+    -e OPENSHIFT_PASSWORD \
+    -e DOCKER_REGISTRY_PATH \
+    -e PULL_DOCKER_REGISTRY_PATH \
+    -v "$PWD":/src/conjur-k8s-csi-provider \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -w /src/conjur-k8s-csi-provider \
+    conjur-k8s-csi-provider-e2e-runner \
+    bash -c "
+      ./bin/start_openshift
+    "
+  exit_code="$?"
+else
+  docker network create kind-network
 
-# containers is a space-delimited list of all containers connected to kind-network
-containers="$(docker network inspect --format '{{range .Containers}}{{.Name}} {{end}}' kind-network)"
-for container in $(echo $containers); do
-  docker rm -f -v "$container"
-done
-docker network rm kind-network
+  docker run --rm \
+    --network kind-network \
+    -v "$PWD":/src/conjur-k8s-csi-provider \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -w /src/conjur-k8s-csi-provider \
+    conjur-k8s-csi-provider-e2e-runner:latest \
+    bash -c "
+      ./bin/start
+    "
+  exit_code="$?"
+
+  # containers is a space-delimited list of all containers connected to kind-network
+  containers="$(docker network inspect --format '{{range .Containers}}{{.Name}} {{end}}' kind-network)"
+  for container in $(echo $containers); do
+    docker rm -f -v "$container"
+  done
+  docker network rm kind-network
+fi
 
 exit $exit_code

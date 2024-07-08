@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+set -x
+
+source bin/test_utils
+
+export CONJUR_NAMESPACE=csi-conjur-namespace
+export CSI_NAMESPACE=csi-driver-namespace
+export TEST_APP_NAMESPACE=csi-app-namespace
+export CONJUR_URL="conjur-oss.$CONJUR_NAMESPACE.svc.cluster.local"
+export cli="oc"
+
+trap cleanup EXIT
+
+# OpenShift specific checks and setup
+oc version >/dev/null || { echo "OpenShift CLI (oc) required"; exit 1; }
+oc login "$OPENSHIFT_URL" -u "$OPENSHIFT_USERNAME" -p "$OPENSHIFT_PASSWORD" --insecure-skip-tls-verify
+
+# Create privileged service account for CSI Driver and provider
+oc adm policy add-scc-to-user privileged system:serviceaccount:$CSI_NAMESPACE:secrets-store-csi-driver
+
+check_dependencies
+setup_helm_repos
+deploy_secrets_store_csi_driver
+
+# Add pod security profile label for CSI Driver
+oc label csidriver/secrets-store.csi.k8s.io security.openshift.io/csi-ephemeral-volume-profile=restricted
+
+# OpenShift specific Conjur deployment
+deploy_conjur \
+    --set "image.repository=registry.connect.redhat.com/cyberark/conjur" \
+    --set "image.tag=latest" \
+    --set "nginx.image.repository=registry.connect.redhat.com/cyberark/conjur-nginx" \
+    --set "nginx.image.tag=latest" \
+    --set "postgres.image.repository=registry.redhat.io/rhel8/postgresql-15" \
+    --set "postgres.image.tag=latest" \
+    --set "openshift.enabled=true"
+
+# Build/tag/push required images
+docker build -t "${DOCKER_REGISTRY_PATH}/${CSI_NAMESPACE}/conjur-k8s-csi-provider-redhat:latest" \
+    --target conjur-k8s-csi-provider-redhat \
+    --no-cache \
+    .
+
+docker pull cyberark/conjur-cli:8
+docker tag cyberark/conjur-cli:8 "${DOCKER_REGISTRY_PATH}/${CONJUR_NAMESPACE}/conjur-cli:${CONJUR_NAMESPACE}"
+
+docker login -u $OPENSHIFT_USERNAME -p $(oc whoami -t) $DOCKER_REGISTRY_PATH
+docker push "${DOCKER_REGISTRY_PATH}/${CSI_NAMESPACE}/conjur-k8s-csi-provider-redhat:latest"
+docker push "${DOCKER_REGISTRY_PATH}/${CONJUR_NAMESPACE}/conjur-cli:${CONJUR_NAMESPACE}"
+
+# Create a pull secret
+oc create secret docker-registry dockerpullsecret \
+        --docker-server=${PULL_DOCKER_REGISTRY_PATH} \
+        --docker-username=_ \
+        --docker-password=$(oc whoami -t) \
+        --docker-email=_
+oc secrets link default dockerpullsecret --for=pull
+
+setup_conjur_cli
+configure_conjur
+
+# Deploy Conjur provider
+helm install \
+    --wait --timeout "1m" \
+    --namespace $CSI_NAMESPACE \
+    --set daemonSet.image.repo="$PULL_DOCKER_REGISTRY_PATH/$CSI_NAMESPACE/conjur-k8s-csi-provider-redhat" \
+    --set daemonSet.image.tag="latest" \
+    --set serviceAccount.create=false \
+    --set serviceAccount.name=secrets-store-csi-driver \
+    --set "securityContext.privileged=true" \
+    --set "securityContext.allowPrivilegeEscalation=true" \
+    conjur-provider \
+    ./helm/conjur-k8s-csi-provider
+
+deploy_test_app
+
+run_assertions

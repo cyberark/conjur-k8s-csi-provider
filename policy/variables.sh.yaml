@@ -8,6 +8,6 @@
     - !variable password
 
   - !permit
-    role: !host /system:serviceaccount:app-namespace:default
+    role: !host /system:serviceaccount:${TEST_APP_NAMESPACE}:${TEST_APP_SA}
     privileges: [ read, execute ]
     resource: *variables

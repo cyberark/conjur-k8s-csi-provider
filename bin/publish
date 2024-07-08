@@ -6,7 +6,7 @@ set -e
 # Publish images on pre-release and tag as edge
 # Promote pre-releases to releases and tag as latest
 
-. bin/utils
+. bin/build_utils
 
 function print_help() {
   echo "Build Usage: $0 --internal"

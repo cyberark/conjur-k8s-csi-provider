@@ -9,7 +9,7 @@ export DOCKER_BUILDKIT=1
 # go to repo root folder for execution
 cd $(dirname $0)/..
 
-. bin/utils
+. bin/build_utils
 
 echo "---"
 

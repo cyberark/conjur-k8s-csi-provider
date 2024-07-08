@@ -1,0 +1,6 @@
+---
+- !host
+  id: system:serviceaccount:${TEST_APP_NAMESPACE}:${TEST_APP_SA}
+  annotations:
+    authn-jwt/kube/kubernetes.io/namespace: ${TEST_APP_NAMESPACE}
+    authn-jwt/kube/kubernetes.io/serviceaccount/name: ${TEST_APP_SA}

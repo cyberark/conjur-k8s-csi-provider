@@ -1,0 +1,171 @@
+
+#!/bin/bash
+
+set -euo pipefail
+
+export TEST_APP_NAMESPACE=app-namespace
+export CONJUR_NAMESPACE=conjur
+export CSI_NAMESPACE=kube-system
+export TEST_APP_SA=test-app-sa
+export cli="kubectl"
+export CONJUR_URL="conjur-oss.$CONJUR_NAMESPACE.svc.cluster.local"
+
+function cleanup {
+  set +eu
+
+  # Remove CSI Driver and Provider
+  helm uninstall -n $CSI_NAMESPACE csi-secrets-store
+  helm uninstall -n $CSI_NAMESPACE conjur-provider
+  $cli adm policy remove-scc-from-user privileged system:serviceaccount:$CSI_NAMESPACE:secrets-store-csi-driver
+  $cli delete ns $CSI_NAMESPACE
+
+  # Remove test app
+  helm uninstall -n $TEST_APP_NAMESPACE test-app
+  # Unclear why but the test app pod sometimes gets stuck 'Terminating' unless force deleted
+  $cli delete pod/app -n $TEST_APP_NAMESPACE --force
+  $cli delete ns $TEST_APP_NAMESPACE
+
+  # Remove Conjur
+  helm uninstall -n $CONJUR_NAMESPACE conjur
+  $cli delete ns $CONJUR_NAMESPACE
+
+  $cli delete secret dockerpullsecret
+
+  # Cleanup generated policy files
+  rm -f ./policy/host.yaml
+  rm -f ./policy/authn-jwt.yaml
+  rm -f ./policy/variables.yaml
+}
+
+check_dependencies() {
+  helm version >/dev/null || { echo "helm cli required"; exit 1; }
+  docker version >/dev/null  || { echo "docker cli required";  exit 1; }
+
+  if [[ "$cli" == "oc" ]]; then
+    oc version >/dev/null || { echo "oc cli required"; exit 1; }
+  else
+    kind version >/dev/null || { echo "kind cli required"; exit 1; }
+  fi
+}
+
+setup_helm_repos() {
+  helm repo add cyberark --insecure-skip-tls-verify https://cyberark.github.io/helm-charts
+  helm repo add secrets-store-csi-driver --insecure-skip-tls-verify https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+  helm repo update
+}
+
+deploy_secrets_store_csi_driver() {
+  helm install csi-secrets-store \
+    secrets-store-csi-driver/secrets-store-csi-driver \
+    --namespace $CSI_NAMESPACE \
+    --create-namespace \
+    --insecure-skip-tls-verify \
+    --set "linux.providersDir=/var/run/secrets-store-csi-providers" \
+    --set syncSecret.enabled="true" \
+    --set 'tokenRequests[0].audience=conjur'
+}
+
+deploy_conjur() {
+  CONJUR_DATA_KEY="$(docker run --rm cyberark/conjur data-key generate)"
+  
+  helm install conjur cyberark/conjur-oss \
+    --insecure-skip-tls-verify \
+    --namespace "$CONJUR_NAMESPACE" \
+    --create-namespace \
+    --wait --timeout "3m" \
+    --set "dataKey=$CONJUR_DATA_KEY" \
+    --set "fullnameOverride=conjur-oss" \
+    --set "authenticators=authn\,authn-jwt/kube" \
+    --set "service.external.enabled=false" \
+    "$@"
+
+  # Create Conjur account
+  created_account=$($cli exec deployment/conjur-oss --namespace "$CONJUR_NAMESPACE" --container=conjur-oss \
+    -- conjurctl account create "default")
+  export ADMIN_API_KEY=$(echo "$created_account" | awk '/API key for admin:/ {print $NF}')
+}
+
+setup_conjur_cli() {
+  $cli run conjur-cli-pod \
+    --image=cyberark/conjur-cli:8 \
+    --namespace="$CONJUR_NAMESPACE" \
+    --command -- sleep infinity
+  
+  $cli wait \
+    --for=condition=ready \
+    --timeout=5m \
+    --namespace="$CONJUR_NAMESPACE" \
+    pod/conjur-cli-pod
+}
+
+configure_conjur() {
+  generate_policy_files
+  $cli -n "${CONJUR_NAMESPACE}" cp ./policy conjur-cli-pod:/policy -c conjur-cli-pod
+
+  # Fetch authn-jwt values
+  ISSUER=$(oc get --raw /.well-known/openid-configuration | jq -r .issuer)
+  JWKS=$(echo '{"type":"jwks","value":'$(oc get --raw /openid/v1/jwks)'}')
+
+  $cli -n "${CONJUR_NAMESPACE}" exec conjur-cli-pod -- /bin/sh -c "
+    set -x
+    echo yes | conjur init -u https://$CONJUR_URL -a \"default\" --self-signed
+    conjur login -i admin -p $ADMIN_API_KEY
+
+    conjur policy replace -b root -f /policy/host.yaml
+    conjur policy load -b root -f /policy/authn-jwt.yaml
+    conjur policy load -b root -f /policy/variables.yaml
+
+    conjur variable set -i db-credentials/url -v 'https://db.com'
+    conjur variable set -i db-credentials/username -v 'db_user'
+    conjur variable set -i db-credentials/password -v 'Sup3rSecretP@ssword'
+    conjur variable set -i conjur/authn-jwt/kube/public-keys -v '$JWKS'
+    conjur variable set -i conjur/authn-jwt/kube/issuer -v '$ISSUER'
+    conjur variable set -i conjur/authn-jwt/kube/token-app-property -v 'sub'
+  "
+}
+
+generate_policy_files() {
+  envsubst < ./policy/host.sh.yaml > ./policy/host.yaml
+  envsubst < ./policy/authn-jwt.sh.yaml > ./policy/authn-jwt.yaml
+  envsubst < ./policy/variables.sh.yaml > ./policy/variables.yaml
+}
+
+deploy_test_app() {  
+  $cli create namespace "$TEST_APP_NAMESPACE"
+  $cli create serviceaccount "$TEST_APP_SA" -n "$TEST_APP_NAMESPACE"
+
+  get_conjur_cert
+
+  helm install test-app ./helm/test-app \
+    --wait --timeout "1m" \
+    --namespace "$TEST_APP_NAMESPACE" \
+    --set serviceAccount.name="$TEST_APP_SA" \
+    --set conjur.configurationVersion=0.2.0 \
+    --set conjur.sslCertificate="$CONJUR_SSL_CERT" \
+    --set conjur.applianceUrl="https://$CONJUR_URL" \
+    --set conjur.secrets="- \"relative/path/fileA.txt\": \"db-credentials/url\"
+- \"relative/path/fileB.txt\": \"db-credentials/username\"
+- \"relative/path/fileC.txt\": \"db-credentials/password\""
+}
+
+get_conjur_cert() {
+  # oc get secret conjur-conjur-ssl-cert -n $CONJUR_NAMESPACE -o json | jq -r '.data["tls.crt"]' | base64 --decode > files/conjur-cert.pem
+  CONJUR_POD=$($cli get pods --namespace="$CONJUR_NAMESPACE" -l "app=conjur-oss" -o=jsonpath='{.items[0].metadata.name}')
+  CONJUR_SSL_CERT=$($cli exec --namespace="$CONJUR_NAMESPACE" -c conjur-oss $CONJUR_POD -- sh -c "openssl s_client -showcerts -connect $CONJUR_URL:443 </dev/null 2>/dev/null | sed -n '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/p'")
+}
+
+run_assertions() {
+  fileA_content="$($cli exec pod/app -n "$TEST_APP_NAMESPACE" -- cat /mnt/secrets-store/relative/path/fileA.txt)"
+  fileB_content="$($cli exec pod/app -n "$TEST_APP_NAMESPACE" -- cat /mnt/secrets-store/relative/path/fileB.txt)"
+  fileC_content="$($cli exec pod/app -n "$TEST_APP_NAMESPACE" -- cat /mnt/secrets-store/relative/path/fileC.txt)"
+  if [[ "$fileA_content" == "https://db.com" ]] && \
+    [[ "$fileB_content" == "db_user" ]] && \
+    [[ "$fileC_content" == "Sup3rSecretP@ssword" ]];
+  then
+    echo "TEST PASSED!"
+    exit 0
+  else
+    echo "TEST FAILED!"
+    exit 1
+  fi
+}

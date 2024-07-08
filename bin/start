@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+set -x
+
+source bin/test_utils
+
+kind version >/dev/null || { echo "kind cli required"; exit 1; }
+export KIND_EXPERIMENTAL_DOCKER_NETWORK="kind-network"
+kind create cluster
+
+if [[  "${CONTAINERIZED:-}" == "true" ]]; then
+    kind_cid="$(docker inspect --format="{{.Id}}" kind-control-plane)"
+    kind_ip="$(dirname "$(docker network inspect kind-network | yq ".[0][\"Containers\"][\"$kind_cid\"][\"IPv4Address\"]")")"
+    kind_port="$(dirname "$(docker port kind-control-plane)")"
+    kubectl config set clusters.kind-kind.server "https://$kind_ip:$kind_port"
+fi
+
+kubectl config set-context --current --namespace="$TEST_APP_NAMESPACE"
+
+check_dependencies
+setup_helm_repos
+deploy_secrets_store_csi_driver
+
+deploy_conjur
+
+setup_conjur_cli
+configure_conjur
+
+docker build -t conjur-csi-provider:latest \
+  --target conjur-k8s-csi-provider \
+  --no-cache \
+  -f Dockerfile \
+  .
+
+kind load docker-image conjur-csi-provider:latest
+
+helm install \
+    --wait --timeout "1m" \
+    --namespace $CSI_NAMESPACE \
+    --set daemonSet.image.repo="conjur-csi-provider" \
+    --set daemonSet.image.tag="latest" \
+    conjur-provider \
+    ./helm/conjur-k8s-csi-provider
+
+deploy_test_app
+
+run_assertions

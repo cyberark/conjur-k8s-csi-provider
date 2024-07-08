@@ -39,6 +39,6 @@
   #   id: identity-path
 
   - !permit
-    role: !host /system:serviceaccount:app-namespace:default
+    role: !host /system:serviceaccount:${TEST_APP_NAMESPACE}:${TEST_APP_SA}
     privilege: [ read, authenticate ]
     resource: !webservice
