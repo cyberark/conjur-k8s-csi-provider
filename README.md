@@ -40,6 +40,13 @@ our certification levels, see
 | Secrets Store CSI Driver | 1.3.0           |
 | Conjur OSS / Enterprise  | 1.17.3 / 12.5   |
 
+### Openshift
+The Conjur CSI Provider has been tested against the following Openshift versions:
+
+| Oldest | Current|
+|------  |--------|
+| 4.12   | 4.15   |
+
 ## Usage
 
 1. Create and configure a JWT Authenticator instance in Conjur

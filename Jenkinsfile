@@ -25,7 +25,7 @@ if (params.MODE == "PROMOTE") {
       docker pull registry.tld/conjur-k8s-csi-provider:${sourceVersion}
       docker pull registry.tld/conjur-k8s-csi-provider-redhat:${sourceVersion}
       # Promote source version to target version.
-      summon bin/publish --promote --source ${sourceVersion} --target ${targetVersion}
+      summon --environment release bin/publish --promote --source ${sourceVersion} --target ${targetVersion}
     """
   }
 
@@ -42,12 +42,18 @@ pipeline {
   }
 
   triggers {
-    cron(getDailyCronString())
+    cron(getDailyCronString("%NIGHTLY=true"))
   }
 
   environment {
     // Sets the MODE to the specified or autocalculated value as appropriate
     MODE = release.canonicalizeMode()
+  }
+
+  parameters {
+    booleanParam(name: 'TEST_OCP', defaultValue: false, description: 'Run CSI Provider tests against current Openshift version')
+    booleanParam(name: 'TEST_OCP_NEXT', defaultValue: false, description: 'Run CSI Provider tests against next Openshift version')
+    booleanParam(name: 'TEST_OCP_OLDEST', defaultValue: false, description: 'Run CSI Provider tests against oldest Openshift version')
   }
 
   stages {
@@ -156,8 +162,39 @@ pipeline {
       steps { script { infrapool.agentSh 'bin/test_unit' } }
     }
 
-    stage('E2E tests') {
-      steps { script { infrapool.agentSh 'bin/test_e2e' } }
+    stage ("E2E Test") {
+      steps {
+        script {
+          infrapool.agentSh 'bin/test_e2e'
+        }
+      }
+    }
+
+    stage("E2E Test (Openshift - Current)") {
+      when {
+        expression { params.TEST_OCP || params.NIGHTLY }
+      }
+      steps {
+        script { infrapool.agentSh 'bin/test_e2e openshift current' }
+      }
+    }
+
+    stage("E2E Test (Openshift - Oldest)") {
+      when {
+        expression { params.TEST_OCP_OLDEST || params.NIGHTLY }
+      }
+      steps {
+        script { infrapool.agentSh 'bin/test_e2e openshift oldest' }
+      }
+    }
+
+    stage("E2E Test (Openshift - Next)") {
+      when {
+        expression { params.TEST_OCP_NEXT }
+      }
+      steps {
+        script { infrapool.agentSh 'bin/test_e2e openshift next' }
+      }
     }
 
     // Allows for the promotion of images.

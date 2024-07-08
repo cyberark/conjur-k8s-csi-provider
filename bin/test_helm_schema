@@ -2,7 +2,7 @@
 
 set -eox pipefail
 
-. bin/utils
+. bin/build_utils
 build_helm_test_image
 
 echo "Running helm schema tests..."

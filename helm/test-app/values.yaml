@@ -10,3 +10,6 @@ conjur:
   authnId: authn-jwt/kube
   secrets:
   sslCertificate:
+
+serviceAccount:
+  name: default

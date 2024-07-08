@@ -2,3 +2,8 @@ build_ca_certificate
 test
 files
 helm-artifacts
+
+# Generated policy files
+policy/authn-jwt.yaml
+policy/host.yaml
+policy/variables.yaml

@@ -26,7 +26,9 @@ open ./test/c.html
 
 This project also includes end-to-end tests exercising core functionality. To run them:
 ```sh
-./bin/test_e2e
+./bin/test_e2e # KinD
+
+./bin/test_e2e openshift {current-dev/oldest-dev/next-dev} # OpenShift
 ```
 
 ## Pull Request Workflow
