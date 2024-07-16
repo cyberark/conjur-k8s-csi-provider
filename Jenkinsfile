@@ -42,7 +42,7 @@ pipeline {
   }
 
   triggers {
-    cron(getDailyCronString("%NIGHTLY=true"))
+    parameterizedCron(getDailyCronString("%NIGHTLY=true"))
   }
 
   environment {
