@@ -3,8 +3,8 @@ github.com/alessio/shellescape v1.4.2/go.mod h1:PZAiSCk0LJaZkiCSkPv8qIobYglO3FPp
 github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d h1:xDfNPAt8lFiC1UJrqV3uuy861HCTo708pDMbjHHdCas=
 github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d/go.mod h1:6QX/PXZ00z/TKoufEY6K/a0k6AhaJrQKdFe6OfVXsa4=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/cyberark/conjur-api-go v0.12.0 h1:84h/IcphuuyWW1R4VX/Syuyw4lfR89sKvxloexJYmn8=
-github.com/cyberark/conjur-api-go v0.12.0/go.mod h1:WjXCREpdXyU69k5ZwYQMA3k+VkPwMznr22fKSMD5OUE=
+github.com/cyberark/conjur-api-go v0.12.3 h1:LzSXJBKO36WJEcFceXYyb3y9lxHwx5WMhx/YH+RW88M=
+github.com/cyberark/conjur-api-go v0.12.3/go.mod h1:FnzNn6mPwTOyBueSDnu1J4K47J0sYHXTMehaqIV/GxY=
 github.com/cyberark/conjur-authn-k8s-client v0.26.2 h1:HEjS7f6wpItnPbse6CQ/Dp3aHGeXTgnKjpl1RPdE2sA=
 github.com/cyberark/conjur-authn-k8s-client v0.26.2/go.mod h1:C57WW0NZyinwsVuRFSKEHkrxw0L3kXZ5Lb7BAosOxdA=
 github.com/danieljoos/wincred v1.2.1 h1:dl9cBrupW8+r5250DYkYxocLeZ1Y4vB1kxgtjxw8GQs=

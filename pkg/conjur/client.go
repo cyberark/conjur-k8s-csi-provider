@@ -1,13 +1,7 @@
 package conjur
 
 import (
-	"bytes"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
@@ -54,83 +48,50 @@ func NewClient(baseURL, authnID, account, identity, sslCert string) Client {
 	}
 }
 
-func (c *Config) authenticate(jwt string) ([]byte, error) {
-	requestURL, err := url.Parse(c.BaseURL)
-	if err != nil {
-		return nil, err
+// authenticate creates an authenticated Conjur client using the provided JWT.
+func (c *Config) authenticate(jwt string) (*conjurapi.Client, error) {
+	// Parse the service ID if needed
+	serviceId := c.AuthnID
+	if strings.Contains(c.AuthnID, "authn-jwt/") {
+		serviceId = strings.Split(c.AuthnID, "authn-jwt/")[1]
 	}
 
-	requestURL = requestURL.JoinPath(
-		c.AuthnID,
-		c.Account,
-		url.PathEscape(c.Identity),
-		"authenticate",
-	)
-
-	data := url.Values{}
-	data.Set("jwt", jwt)
-
-	pool := x509.NewCertPool()
-	ok := pool.AppendCertsFromPEM([]byte(c.SSLCert))
-	if !ok {
-		log.Error(logmessages.CKCP014)
-		return nil, fmt.Errorf(logmessages.CKCP014)
+	config := conjurapi.Config{
+		Account:      c.Account,
+		ApplianceURL: c.BaseURL,
+		SSLCert:      c.SSLCert,
+		AuthnType:    "jwt",
+		ServiceID:    serviceId,
+		JWTHostID:    c.Identity,
+		JWTContent:   jwt,
 	}
 
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{RootCAs: pool},
-	}
-	client := &http.Client{Transport: transport}
-
-	req, err := http.NewRequest(
-		"POST",
-		requestURL.String(),
-		bytes.NewBufferString(data.Encode()),
-	)
-	if err != nil {
-		log.Error(logmessages.CKCP027, err)
-		return nil, fmt.Errorf(logmessages.CKCP027, err)
-	}
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Error(logmessages.CKCP028, err)
-		return nil, fmt.Errorf(logmessages.CKCP028, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		log.Error(logmessages.CKCP015, resp.StatusCode)
-		return nil, fmt.Errorf(logmessages.CKCP015, resp.StatusCode)
-	}
-
-	return io.ReadAll(resp.Body)
-}
-
-// GetSecrets authenticates with Conjur using the provided JWT and returns
-// requested secret data.
-func (c *Config) GetSecrets(jwt string, secretIds []string) (map[string][]byte, error) {
-	authenticatedToken, err := c.authenticate(jwt)
-	if err != nil {
-		log.Error(logmessages.CKCP029, err)
-		return nil, fmt.Errorf(logmessages.CKCP029, err)
-	}
-
-	conjur, err := conjurapi.NewClientFromToken(
-		conjurapi.Config{
-			Account:      c.Account,
-			ApplianceURL: c.BaseURL,
-			SSLCert:      c.SSLCert,
-		}, string(authenticatedToken))
+	err := config.Validate()
 	if err != nil {
 		log.Error(logmessages.CKCP030, err)
 		return nil, fmt.Errorf(logmessages.CKCP030, err)
 	}
 
+	conjur, err := conjurapi.NewClientFromJwt(config)
+	if err != nil {
+		log.Error(logmessages.CKCP030, err)
+		return nil, fmt.Errorf(logmessages.CKCP030, err)
+	}
+
+	return conjur, nil
+}
+
+// GetSecrets authenticates with Conjur using the provided JWT and returns
+// requested secret data.
+func (c *Config) GetSecrets(jwt string, secretIds []string) (map[string][]byte, error) {
+	authenticatedClient, err := c.authenticate(jwt)
+	if err != nil {
+		log.Error(logmessages.CKCP031, err)
+		return nil, fmt.Errorf(logmessages.CKCP031, err)
+	}
+
 	secretValuesByID := map[string][]byte{}
-	secretValuesByFullID, err := conjur.RetrieveBatchSecretsSafe(secretIds)
+	secretValuesByFullID, err := authenticatedClient.RetrieveBatchSecretsSafe(secretIds)
 	if err != nil {
 		log.Error(logmessages.CKCP031, err)
 		return nil, fmt.Errorf(logmessages.CKCP031, err)
