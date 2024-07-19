@@ -37,13 +37,13 @@ RUN curl -LO https://dl.k8s.io/release/v"${KUBECTL_VERSION:-1.21.3}"/bin/linux/a
 
 # Install Helm CLI
 ARG HELM_CLI_VERSION
-RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
-RUN chmod 700 get_helm.sh
-RUN ./get_helm.sh --no-sudo --version ${HELM_CLI_VERSION:-v3.5.2}
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
+    chmod 700 get_helm.sh && \
+    ./get_helm.sh --no-sudo --version ${HELM_CLI_VERSION:-v3.5.2}
 
 # Install Openshift CLI
-ARG OC_CLI_VERSION=latest
-RUN curl -fsSL -o oc.tar.gz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OC_CLI_VERSION}/openshift-client-linux.tar.gz && \
+ARG OC_CLI_VERSION
+RUN curl -k -fsSL -o oc.tar.gz https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/${OC_CLI_VERSION:-stable}/openshift-client-linux.tar.gz && \
     tar -xzf oc.tar.gz && \
     mv oc /usr/local/bin/ && \
     rm -f oc.tar.gz kubectl README.md

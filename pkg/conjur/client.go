@@ -13,47 +13,49 @@ import (
 // proper configuration values.
 type ClientFactory func(baseURL, authnID, account, identity, sslCert string) Client
 
-// Client is an interface to Conjur's API functions required by our CSI Provider.
+// Client is an interface to functions required by our CSI Provider.
 type Client interface {
 	GetSecrets(jwt string, secretIds []string) (map[string][]byte, error)
 }
 
+// ConjurClient interface for the methods we use from conjurapi.Client
+type ConjurClient interface {
+	RetrieveBatchSecretsSafe([]string) (map[string][]byte, error)
+}
+
 // Config holds the configuration needed to communicate with Conjur and
 // implements the Client interface.
-//
-// Example:
-//
-//	config := Config{
-//	    BaseURL:  "https://conjur-conjur-oss.conjur.svc.cluster.local",
-//	    AuthnID:  "authn-jwt/kube",
-//	    Account:  "default",
-//	    Identity: "host/host1",
-//	}
 type Config struct {
-	BaseURL  string
-	AuthnID  string
-	Account  string
-	Identity string
-	SSLCert  string
+	BaseURL       string
+	AuthnID       string
+	Account       string
+	Identity      string
+	SSLCert       string
+	clientFactory func(conjurapi.Config) (ConjurClient, error)
 }
 
 // NewClient returns a new Conjur client.
 func NewClient(baseURL, authnID, account, identity, sslCert string) Client {
 	return &Config{
-		BaseURL:  baseURL,
-		AuthnID:  authnID,
-		Account:  account,
-		Identity: identity,
-		SSLCert:  sslCert,
+		BaseURL:       baseURL,
+		AuthnID:       authnID,
+		Account:       account,
+		Identity:      identity,
+		SSLCert:       sslCert,
+		clientFactory: defaultClientFactory,
 	}
 }
 
-// authenticate creates an authenticated Conjur client using the provided JWT.
-func (c *Config) authenticate(jwt string) (*conjurapi.Client, error) {
-	// Parse the service ID if needed
-	serviceId := c.AuthnID
+func defaultClientFactory(config conjurapi.Config) (ConjurClient, error) {
+	return conjurapi.NewClientFromJwt(config)
+}
+
+// GetSecrets authenticates with Conjur using the provided JWT and returns
+// requested secret data.
+func (c *Config) GetSecrets(jwt string, secretIds []string) (map[string][]byte, error) {
+	serviceID := c.AuthnID
 	if strings.Contains(c.AuthnID, "authn-jwt/") {
-		serviceId = strings.Split(c.AuthnID, "authn-jwt/")[1]
+		serviceID = strings.Split(c.AuthnID, "authn-jwt/")[1]
 	}
 
 	config := conjurapi.Config{
@@ -61,33 +63,20 @@ func (c *Config) authenticate(jwt string) (*conjurapi.Client, error) {
 		ApplianceURL: c.BaseURL,
 		SSLCert:      c.SSLCert,
 		AuthnType:    "jwt",
-		ServiceID:    serviceId,
+		ServiceID:    serviceID,
 		JWTHostID:    c.Identity,
 		JWTContent:   jwt,
 	}
 
-	err := config.Validate()
-	if err != nil {
+	if err := config.Validate(); err != nil {
 		log.Error(logmessages.CKCP030, err)
 		return nil, fmt.Errorf(logmessages.CKCP030, err)
 	}
 
-	conjur, err := conjurapi.NewClientFromJwt(config)
+	authenticatedClient, err := c.clientFactory(config)
 	if err != nil {
 		log.Error(logmessages.CKCP030, err)
 		return nil, fmt.Errorf(logmessages.CKCP030, err)
-	}
-
-	return conjur, nil
-}
-
-// GetSecrets authenticates with Conjur using the provided JWT and returns
-// requested secret data.
-func (c *Config) GetSecrets(jwt string, secretIds []string) (map[string][]byte, error) {
-	authenticatedClient, err := c.authenticate(jwt)
-	if err != nil {
-		log.Error(logmessages.CKCP031, err)
-		return nil, fmt.Errorf(logmessages.CKCP031, err)
 	}
 
 	secretValuesByID := map[string][]byte{}
