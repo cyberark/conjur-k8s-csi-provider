@@ -51,9 +51,8 @@ pipeline {
   }
 
   parameters {
-    booleanParam(name: 'TEST_OCP', defaultValue: false, description: 'Run CSI Provider tests against current Openshift version')
+    booleanParam(name: 'NIGHTLY', defaultValue: false, description: 'Run CSI Provider tests against all supported platforms: Kubernetes, Openshift Current/Oldest')
     booleanParam(name: 'TEST_OCP_NEXT', defaultValue: false, description: 'Run CSI Provider tests against next Openshift version')
-    booleanParam(name: 'TEST_OCP_OLDEST', defaultValue: false, description: 'Run CSI Provider tests against oldest Openshift version')
   }
 
   stages {
@@ -172,7 +171,7 @@ pipeline {
 
     stage("E2E Test (Openshift - Current)") {
       when {
-        expression { params.TEST_OCP || params.NIGHTLY }
+        expression { params.NIGHTLY }
       }
       steps {
         script { infrapool.agentSh 'bin/test_e2e openshift current' }
@@ -181,7 +180,7 @@ pipeline {
 
     stage("E2E Test (Openshift - Oldest)") {
       when {
-        expression { params.TEST_OCP_OLDEST || params.NIGHTLY }
+        expression { params.NIGHTLY }
       }
       steps {
         script { infrapool.agentSh 'bin/test_e2e openshift oldest' }

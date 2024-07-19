@@ -14,7 +14,7 @@ For general contribution and community guidelines, please see the
 
 This project includes table-driven unit tests for each component. To run them:
 ```sh
-./bin/test
+./bin/test_unit
 ```
 
 This script generates a coverage profile in the `test/` directory. To generate a
