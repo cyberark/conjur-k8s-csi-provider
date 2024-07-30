@@ -33,12 +33,13 @@ our certification levels, see
 
 ## Requirements
 
-| Dependency               | Minimum Version |
-|--------------------------|-----------------|
-| Go                       | 1.22.0          |
-| Kubernetes               | 1.19.0          |
-| Secrets Store CSI Driver | 1.3.0           |
-| Conjur OSS / Enterprise  | 1.17.3 / 12.5   |
+| Dependency                     | Minimum Version         |
+|--------------------------------|-------------------------|
+| Go                             | 1.22.0                  |
+| Kubernetes                     | 1.19.0                  |
+| Secrets Store CSI Driver       | 1.3.0                   |
+| Conjur OSS / Enterprise/ Cloud | 1.17.3 / 12.5 / Current |
+
 
 ### Openshift
 The Conjur CSI Provider has been tested against the following Openshift versions:
