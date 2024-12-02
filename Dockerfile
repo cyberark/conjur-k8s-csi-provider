@@ -1,7 +1,7 @@
 ###############
 # BUILD STAGE #
 ###############
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # this value changes in ./bin/build
 ARG TAG_SUFFIX="dev"
@@ -15,11 +15,11 @@ ARG VERSION="unreleased"
 # certificate is not available, we copy the (potentially empty) directory
 # and update container certificates based on that, rather than rely on the
 # CA file itself.
-ADD build_ca_certificate /usr/local/share/ca-certificates/
+COPY build_ca_certificate /usr/local/share/ca-certificates/
 RUN update-ca-certificates
 
 WORKDIR /conjur-k8s-csi-provider
-ADD . .
+COPY . .
 RUN go build \
     -ldflags="-X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.ProviderVersion=$VERSION' \
       -X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.TagSuffix=$TAG_SUFFIX'" \
@@ -60,13 +60,13 @@ RUN yum -y distro-sync
 # NOTE: If deploying this image via the helm chart, the csi-provider
 # user will require special permissions on the host to access the
 # secrets-store-csi-provider socket directory which is volume mounted.
-RUN useradd -m csi-provider
-RUN mkdir -p /var/run/secrets-store-csi-providers /licenses
-RUN chown -R csi-provider:0 /var/run/secrets-store-csi-providers
+RUN useradd -m csi-provider && \
+    mkdir -p /var/run/secrets-store-csi-providers && \
+    chown -R csi-provider:0 /var/run/secrets-store-csi-providers
 
 USER csi-provider
 
-ADD LICENSE /licenses
+COPY LICENSE /licenses
 COPY --from=builder /conjur-csi-provider /conjur-csi-provider
 
 ENTRYPOINT [ "/conjur-csi-provider" ]
