@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [0.2.2] - 2024-12-16
+
+### Added
+- Added default resource limits to provider helm chart (CNJR-6443)
+
 ## [0.2.1] - 2024-07-23
 
 ### Changed
@@ -65,3 +70,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Initial release of Conjur Provider for Secrets Store CSI Driver
+
+[Unreleased]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.1.2...v0.2.0
+[0.1.2]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.0.2...v0.1.1
+[0.0.2]: https://github.com/cyberark/conjur-k8s-csi-provider/releases/tag/v0.0.2
