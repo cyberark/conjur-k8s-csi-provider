@@ -47,6 +47,8 @@ ARG VERSION
 
 LABEL org.opencontainers.image.authors="CyberArk Software Ltd."
 LABEL id="conjur-k8s-csi-provider"
+LABEL name="Conjur Provider for Kubernetes Secrets Store CSI Driver"
+LABEL maintainer="CyberArk Software Ltd."
 LABEL vendor="CyberArk"
 LABEL version="$VERSION"
 LABEL release="$VERSION"
@@ -66,7 +68,7 @@ RUN useradd -m csi-provider && \
 
 USER csi-provider
 
-COPY LICENSE /licenses
+COPY LICENSE /licenses/LICENSE
 COPY --from=builder /conjur-csi-provider /conjur-csi-provider
 
 ENTRYPOINT [ "/conjur-csi-provider" ]
