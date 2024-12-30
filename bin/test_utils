@@ -100,7 +100,7 @@ setup_conjur_cli() {
 
 configure_conjur() {
   generate_policy_files
-  $cli -n "${CONJUR_NAMESPACE}" cp ./policy conjur-cli-pod:/policy -c conjur-cli-pod
+  $cli -n "${CONJUR_NAMESPACE}" cp ./policy conjur-cli-pod:/tmp/policy -c conjur-cli-pod
 
   # Fetch authn-jwt values
   ISSUER=$(oc get --raw /.well-known/openid-configuration | jq -r .issuer)
@@ -111,9 +111,9 @@ configure_conjur() {
     echo yes | conjur init -u https://$CONJUR_URL -a \"default\" --self-signed
     conjur login -i admin -p $ADMIN_API_KEY
 
-    conjur policy replace -b root -f /policy/host.yaml
-    conjur policy load -b root -f /policy/authn-jwt.yaml
-    conjur policy load -b root -f /policy/variables.yaml
+    conjur policy replace -b root -f /tmp/policy/host.yaml
+    conjur policy load -b root -f /tmp/policy/authn-jwt.yaml
+    conjur policy load -b root -f /tmp/policy/variables.yaml
 
     conjur variable set -i db-credentials/url -v 'https://db.com'
     conjur variable set -i db-credentials/username -v 'db_user'
