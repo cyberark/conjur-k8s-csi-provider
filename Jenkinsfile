@@ -1,5 +1,10 @@
 #!/usr/bin/env groovy
 
+@Library(['product-pipelines-shared-library', 'conjur-enterprise-sharedlib']) _
+
+def productName = 'Conjur Kubernetes CSI Provider'
+def productTypeName = 'Conjur Enterprise'
+
 // Automated release, promotion and dependencies
 properties([
   // Include the automated release parameters for the build
@@ -18,6 +23,30 @@ if (params.MODE == "PROMOTE") {
     // Any version number updates from sourceVersion to targetVersion occur here
     // Any publishing of targetVersion artifacts occur here
     // Anything added to assetDirectory will be attached to the Github Release
+
+    env.INFRAPOOL_PRODUCT_NAME = "${productName}"
+    env.INFRAPOOL_DD_PRODUCT_TYPE_NAME = "${productTypeName}"
+
+    // Scan the images before promoting
+    def scans = [:]
+
+    scans["Scan main Docker image"] = {
+      runSecurityScans(infrapool,
+        image: "registry.tld/conjur-k8s-csi-provider:${sourceVersion}",
+        buildMode: params.MODE,
+        branch: env.BRANCH_NAME,
+        arch: 'linux/amd64')
+    }
+
+    scans["Scan RedHat Docker image"] = {
+      runSecurityScans(infrapool,
+            image: "registry.tld/conjur-k8s-csi-provider-redhat:${sourceVersion}",
+            buildMode: params.MODE,
+            branch: env.BRANCH_NAME,
+            arch: 'linux/amd64')
+    }
+
+    parallel scans
 
     // Pull existing images from internal registry in order to promote
     infrapool.agentSh """
@@ -48,6 +77,10 @@ pipeline {
   environment {
     // Sets the MODE to the specified or autocalculated value as appropriate
     MODE = release.canonicalizeMode()
+
+    // Values to direct scan results to the right place in DefectDojo
+    INFRAPOOL_PRODUCT_NAME = "${productName}"
+    INFRAPOOL_DD_PRODUCT_TYPE_NAME = "${productTypeName}"
   }
 
   parameters {
@@ -119,24 +152,39 @@ pipeline {
       }
     }
 
+    // Required for scanning the images.
+    stage('Push images to internal registry') {
+      steps {
+        script {
+          infrapool.agentSh './bin/publish --internal'
+        }
+      }
+    }
+
     stage('Scan Docker Image') {
       parallel {
-        stage("Scan Docker Image for fixable issues") {
+        stage("Scan main Docker Image") {
           steps {
-            // Adding the false parameter to scanAndReport causes trivy to
-            // ignore vulnerabilities for which no fix is available. We'll
-            // only fail the build if we can actually fix the vulnerability
-            // right now.
-            scanAndReport(infrapool, 'conjur-k8s-csi-provider:latest', "HIGH", false)
+            script {
+              VERSION = infrapool.agentSh(returnStdout: true, script: 'cat VERSION')
+              runSecurityScans(infrapool,
+                image: "registry.tld/conjur-k8s-csi-provider:${VERSION}",
+                buildMode: params.MODE,
+                branch: env.BRANCH_NAME,
+                arch: 'linux/amd64')
+            }
           }
         }
-        stage("Scan Docker image for total issues") {
+        stage("Scan RedHat Docker image") {
           steps {
-            // By default, trivy includes vulnerabilities with no fix. We
-            // want to know about that ASAP, but they shouldn't cause a
-            // build failure until we can do something about it. This call
-            // to scanAndReport should always be left as "NONE"
-            scanAndReport(infrapool, "conjur-k8s-csi-provider:latest", "NONE", true)
+            script {
+              VERSION = infrapool.agentSh(returnStdout: true, script: 'cat VERSION')
+              runSecurityScans(infrapool,
+                image: "registry.tld/conjur-k8s-csi-provider-redhat:${VERSION}",
+                buildMode: params.MODE,
+                branch: env.BRANCH_NAME,
+                arch: 'linux/amd64')
+            }
           }
         }
       }
@@ -193,15 +241,6 @@ pipeline {
       }
       steps {
         script { infrapool.agentSh 'bin/test_e2e openshift next' }
-      }
-    }
-
-    // Allows for the promotion of images.
-    stage('Push images to internal registry') {
-      steps {
-        script {
-          infrapool.agentSh './bin/publish --internal'
-        }
       }
     }
 
