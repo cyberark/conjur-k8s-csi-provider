@@ -70,10 +70,6 @@ pipeline {
     buildDiscarder(logRotator(numToKeepStr: '30'))
   }
 
-  triggers {
-    parameterizedCron(getDailyCronString("%NIGHTLY=true"))
-  }
-
   environment {
     // Sets the MODE to the specified or autocalculated value as appropriate
     MODE = release.canonicalizeMode()
@@ -81,6 +77,13 @@ pipeline {
     // Values to direct scan results to the right place in DefectDojo
     INFRAPOOL_PRODUCT_NAME = "${productName}"
     INFRAPOOL_DD_PRODUCT_TYPE_NAME = "${productTypeName}"
+  }
+
+  triggers {
+    parameterizedCron("""
+      ${getDailyCronString("%NIGHTLY=true")}
+      ${getWeeklyCronString("H(1-5)", "%MODE=RELEASE")}
+    """)
   }
 
   parameters {
