@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
-## [0.2.4] - 2025-03-18
+## [0.2.4] - 2025-04-01
 
 ## Security
 - Bump Golang base images to 1.24 (CNJR-8631)
@@ -81,7 +81,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Initial release of Conjur Provider for Secrets Store CSI Driver
 
-[Unreleased]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.0...v0.2.1

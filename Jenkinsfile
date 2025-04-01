@@ -56,6 +56,10 @@ if (params.MODE == "PROMOTE") {
       # Promote source version to target version.
       summon --environment release bin/publish --promote --source ${sourceVersion} --target ${targetVersion}
     """
+
+    // Ensure the working directory is a safe git directory for the subsequent
+    // promotion operations after this block.
+    sh 'git config --global --add safe.directory "$(pwd)"'
   }
 
   release.copyEnterpriseRelease(params.VERSION_TO_PROMOTE)
