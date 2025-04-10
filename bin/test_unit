@@ -1,40 +1,21 @@
 #!/usr/bin/env bash
 
-set -eox pipefail
+set -exo pipefail
 
-junit_output_file="junit.output"
 . bin/build_utils
 
-function main() {
-  retrieve_cyberark_ca_cert
-  build_docker_ut_image
-  run_unit_tests
-}
-
-function build_docker_ut_image() {
-  echo "Building unit test image..."
-  docker build \
-    -f Dockerfile.test \
-    -t conjur-k8s-csi-provider-test-runner:latest \
-    .
-}
-
-function run_unit_tests() {
-  echo "Running unit tests..."
-
-  mkdir -p "$(repo_root)/test"
-  touch "$(repo_root)/test/$junit_output_file"
-
-  docker run --rm \
-    -v "$PWD/test/":/conjur-k8s-csi-provider/test/ \
-    conjur-k8s-csi-provider-test-runner:latest \
-      -ldflags="-X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.ProviderVersion=$(version)' \
-        -X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.TagSuffix=$(git_tag_suffix)'" \
-      -coverprofile="./test/c.out.tmp" \
-      ./... \
-      | tee -a "./test/$junit_output_file" && \
-        cat ./test/c.out.tmp | grep -v "_dev.go" > ./test/c.out && \
-        rm -f ./test/c.out.tmp
-}
-
-main
+docker run --rm -v $(pwd):/conjur-k8s-csi-provider -w /conjur-k8s-csi-provider golang:1.24 bash -c 'set -o pipefail;
+           output_dir="./output";
+           mkdir -p "$output_dir";
+           go install github.com/axw/gocov/gocov@latest;
+           go install github.com/AlekSi/gocov-xml@latest;
+           go install github.com/jstemmer/go-junit-report/v2@latest;
+           go test -coverprofile="$output_dir/c.out" -v ./... \
+            -ldflags="-X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.ProviderVersion=$(version)' \
+            -X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.TagSuffix=$(git_tag_suffix)'" | tee "$output_dir/junit.output";
+           exit_code=$?;
+           echo "Tests finished - aggregating results...";
+           cat "$output_dir/junit.output" | go-junit-report > "$output_dir/junit.xml";
+           gocov convert "$output_dir/c.out" | gocov-xml > "$output_dir/coverage.xml";
+           echo "Exit code: $exit_code"; 
+           exit $exit_code' || (echo "TESTS FAILED" && exit 1)
