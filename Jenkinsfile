@@ -213,7 +213,35 @@ pipeline {
     }
 
     stage('Unit tests'){
-      steps { script { infrapool.agentSh 'bin/test_unit' } }
+      steps { 
+        script { 
+          infrapool.agentSh 'bin/test_unit'
+          infrapool.agentStash name: 'xml-out', includes: 'output/*.xml'
+        } 
+      }
+      post {
+        always {
+          script {
+            unstash 'xml-out'
+            junit 'output/junit.xml'
+
+            cobertura autoUpdateHealth: false,
+              autoUpdateStability: false,
+              coberturaReportFile: 'output/coverage.xml',
+              conditionalCoverageTargets: '70, 0, 0',
+              failUnhealthy: false,
+              failUnstable: false,
+              maxNumberOfBuilds: 0,
+              lineCoverageTargets: '70, 0, 0',
+              methodCoverageTargets: '70, 0, 0',
+              onlyStable: false,
+              sourceEncoding: 'ASCII',
+              zoomCoverageChart: false
+            
+            codacy action: 'reportCoverage', filePath: "output/coverage.xml"
+          }
+        }
+      }
     }
 
     stage ("E2E Test") {
