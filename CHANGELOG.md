@@ -10,14 +10,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [0.2.5] - 2025-07-03
+
+### Security
+- Updated Go dependencies
+- Use latest 3.x alpine base image
+ 
 ## [0.2.4] - 2025-04-01
 
-## Security
+### Security
 - Bump Golang base images to 1.24 (CNJR-8631)
 
 ## [0.2.3] - 2024-12-20
 
-## Security
+### Security
 - Bumped golang.org/x/net to v0.33.0 to address CVE-2024-45338
 
 ## [0.2.2] - 2024-12-16
