@@ -29,7 +29,7 @@ RUN go build \
 #############
 # RUN STAGE #
 #############
-FROM alpine:3.19.1 as conjur-k8s-csi-provider
+FROM alpine:3 AS conjur-k8s-csi-provider
 LABEL org.opencontainers.image.authors="CyberArk Software Ltd."
 LABEL id="conjur-k8s-csi-provider"
 
@@ -41,7 +41,7 @@ ENTRYPOINT [ "/conjur-csi-provider" ]
 ################
 # REDHAT IMAGE #
 ################
-FROM registry.access.redhat.com/ubi9/ubi as conjur-k8s-csi-provider-redhat
+FROM registry.access.redhat.com/ubi9/ubi AS conjur-k8s-csi-provider-redhat
 
 ARG VERSION
 
