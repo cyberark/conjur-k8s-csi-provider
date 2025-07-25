@@ -3,7 +3,7 @@ module github.com/cyberark/conjur-k8s-csi-provider
 go 1.24.1
 
 require (
-	github.com/cyberark/conjur-api-go v0.13.1 // version will be ignored by auto release process
+	github.com/cyberark/conjur-api-go v0.13.2 // version will be ignored by auto release process
 	github.com/cyberark/conjur-authn-k8s-client v0.26.7 // version will be ignored by auto release process
 	github.com/hashicorp/go-version v1.7.0
 	github.com/stretchr/testify v1.10.0
@@ -16,6 +16,7 @@ require (
 
 require (
 	al.essio.dev/pkg/shellescape v1.6.0 // indirect
+	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
