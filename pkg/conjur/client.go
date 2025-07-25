@@ -59,13 +59,14 @@ func (c *Config) GetSecrets(jwt string, secretIds []string) (map[string][]byte, 
 	}
 
 	config := conjurapi.Config{
-		Account:      c.Account,
-		ApplianceURL: c.BaseURL,
-		SSLCert:      c.SSLCert,
-		AuthnType:    "jwt",
-		ServiceID:    serviceID,
-		JWTHostID:    c.Identity,
-		JWTContent:   jwt,
+		Account:           c.Account,
+		ApplianceURL:      c.BaseURL,
+		SSLCert:           c.SSLCert,
+		AuthnType:         "jwt",
+		ServiceID:         serviceID,
+		JWTHostID:         c.Identity,
+		JWTContent:        jwt,
+		CredentialStorage: conjurapi.CredentialStorageNone,
 	}
 
 	if err := config.Validate(); err != nil {
