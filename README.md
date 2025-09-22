@@ -1,16 +1,16 @@
-# Conjur Provider for Secrets Store CSI Driver
+# CyberArk Secrets Manager Provider for Secrets Store CSI Driver
 
-Conjur's integration for the
+CyberArk Secrets Manager's integration for the
 [Kubernetes Secrets Store CSI Driver](https://secrets-store-csi-driver.sigs.k8s.io/),
 which injects secrets into Kubernetes environments via
 [Container Storage Interface](https://kubernetes-csi.github.io/docs/) volumes.
 
-- [Conjur Provider for Secrets Store CSI Driver](#conjur-provider-for-secrets-store-csi-driver)
+- [Secrets Manager Provider for Secrets Store CSI Driver](#secrets-manager-provider-for-secrets-store-csi-driver)
   - [Certification level](#certification-level)
   - [Requirements](#requirements)
   - [Usage](#usage)
   - [Configuration](#configuration)
-    - [Conjur Provider Helm chart](#conjur-provider-helm-chart)
+    - [Secrets Manager Provider Helm chart](#secrets-manager-provider-helm-chart)
     - [`SecretProviderClass`](#secretproviderclass)
   - [Contributing](#contributing)
   - [Community Support](#community-support)
@@ -19,7 +19,7 @@ which injects secrets into Kubernetes environments via
 
 <!---<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>--->
 
-Conjur Provider for Secrets Store CSI Driver is part of the CyberArk Conjur
+Secrets Manager Provider for Secrets Store CSI Driver is part of the CyberArk Conjur
 [Open Source Suite](https://cyberark.github.io/conjur/) of tools.
 
 ## Certification level
@@ -27,22 +27,22 @@ Conjur Provider for Secrets Store CSI Driver is part of the CyberArk Conjur
 ![](https://img.shields.io/badge/Certification%20Level-Trusted-28A745?link=https://github.com/cyberark/community/blob/master/Conjur/conventions/certification-levels.md)
 
 This repo is a **Trusted** level project. It is supported by CyberArk and has
-been verified to work with Conjur Enterprise. For more detailed information on
+been verified to work with Secrets Manager, Self-Hosted. For more detailed information on
 our certification levels, see
 [our community guidelines](https://github.com/cyberark/community/blob/master/Conjur/conventions/certification-levels.md#trusted).
 
 ## Requirements
 
-| Dependency                     | Minimum Version         |
-|--------------------------------|-------------------------|
-| Go                             | 1.22.0                  |
-| Kubernetes                     | 1.19.0                  |
-| Secrets Store CSI Driver       | 1.3.0                   |
-| Conjur OSS / Enterprise/ Cloud | 1.17.3 / 12.5 / Current |
+| Dependency                                                        | Minimum Version         |
+|-------------------------------------------------------------------|-------------------------|
+| Go                                                                | 1.22.0                  |
+| Kubernetes                                                        | 1.19.0                  |
+| Secrets Store CSI Driver                                          | 1.3.0                   |
+| Conjur OSS / Secrets Manager, Self-Hosted / Secrets Manager, SaaS | 1.17.3 / 12.5 / Current |
 
 
 ### Openshift
-The Conjur CSI Provider has been tested against the following Openshift versions:
+The Secrets Manager CSI Provider has been tested against the following Openshift versions:
 
 | Oldest | Current|
 |------  |--------|
@@ -50,11 +50,11 @@ The Conjur CSI Provider has been tested against the following Openshift versions
 
 ## Usage
 
-1. Create and configure a JWT Authenticator instance in Conjur
+1. Create and configure a JWT Authenticator instance in Secrets Manager
 
-   Load the following Conjur policy samples to setup AuthnJWT.
+   Load the following Secrets Manager policy samples to setup AuthnJWT.
 
-   Each workload in Kubernetes is represented as a Conjur `host`, specified by
+   Each workload in Kubernetes is represented as a Secrets Manager `host`, specified by
    identifying annotations.
 
    ```yaml
@@ -100,13 +100,13 @@ The Conjur CSI Provider has been tested against the following Openshift versions
      # - !variable
      #   id: audience
 
-     # This variable tells Conjur which claim in the JWT to use to determine the
-     # Conjur host identity.
+     # This variable tells Secrets Manager which claim in the JWT to use to determine the
+     # Secrets Manager host identity.
      - !variable
        id: token-app-property # Most likely set to "sub" for Kubernetes
 
      # Used with 'token-app-property'.
-     # This variable will hold the Conjur policy path that contains the Conjur
+     # This variable will hold the Secrets Manager policy path that contains the Secrets Manager
      # host identity found by looking at the claim entered in token-app-property.
      # - !variable
      #   id: identity-path
@@ -157,7 +157,7 @@ The Conjur CSI Provider has been tested against the following Openshift versions
    [best practices](https://secrets-store-csi-driver.sigs.k8s.io/topics/best-practices)
    for installing the CSI Driver.
 
-3. Install the Conjur Provider Helm chart
+3. Install the Secrets Manager Provider Helm chart
 
    ```shell
    $ helm repo add cyberark \
@@ -173,7 +173,7 @@ The Conjur CSI Provider has been tested against the following Openshift versions
 
 4. Create a `SecretProviderClass`
 
-   Configuration is passed to the Conjur provider via a
+   Configuration is passed to the Secrets Manager provider via a
    [`SecretProviderClass`](https://secrets-store-csi-driver.sigs.k8s.io/concepts#secretproviderclass)
    through the `spec.parameters` field.
 
@@ -241,21 +241,21 @@ The Conjur CSI Provider has been tested against the following Openshift versions
 
 ## Configuration
 
-### Conjur Provider Helm chart
+### Secrets Manager Provider Helm chart
 
-The following table lists the configurable parameters of the Conjur Provider
+The following table lists the configurable parameters of the Secrets Manager Provider
 Helm chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `daemonSet.name` | Name given to Provider DaemonSet and child Pods | `conjur-k8s-csi-provider` |
-| `daemonSet.image.repo` | Conjur Provider Docker image repository | `cyberark/conjur-k8s-csi-provider` |
-| `daemonSet.image.tag` | Conjur Provider Docker image tag | `latest` |
-| `daemonSet.image.pullPolicy` | Pull Policy for Conjur Provider Docker image | `IfNotPresent` |
-| `provider.name` | Name used to reference Conjur Provider instance | `conjur` |
-| `provider.healthPort` | Port to expose Conjur Provider health server | `8080` |
+| `daemonSet.image.repo` | Secrets Manager Provider Docker image repository | `cyberark/conjur-k8s-csi-provider` |
+| `daemonSet.image.tag` | Secrets Manager Provider Docker image tag | `latest` |
+| `daemonSet.image.pullPolicy` | Pull Policy for Secrets Manager Provider Docker image | `IfNotPresent` |
+| `provider.name` | Name used to reference Secrets Manager Provider instance | `conjur` |
+| `provider.healthPort` | Port to expose Secrets Manager Provider health server | `8080` |
 | `provider.socketDir` | Directory of socket connections to the Secrets Store CSI Driver | `/var/run/secrets-store-csi-providers` |
-| `securityContext` | Security configuration to be applied to Conjur Provider container | <pre>{<br> privileged: false,<br>  allowPrivilegeEscalation: false<br>}</pre> |
+| `securityContext` | Security configuration to be applied to Secrets Manager Provider container | <pre>{<br> privileged: false,<br>  allowPrivilegeEscalation: false<br>}</pre> |
 | `serviceAccount.create` | Controls whether or not a ServiceAccout is created | `true` |
 | `serviceAccount.name` | Name of the ServiceAccount associated with Provider Pods | `conjur-k8s-csi-provider` |
 | `labels` | Map of labels applied to Provider DaemonSet and child Pods | `{}` |
@@ -263,17 +263,17 @@ Helm chart and their default values.
 
 ### `SecretProviderClass`
 
-The following table lists the configurable parameters on the Conjur Provider's
+The following table lists the configurable parameters on the Secrets Manager Provider's
 `SecretProviderClass` instances.
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| `spec.parameters.account` | Conjur account used during authentication | `myAccount` |
-| `spec.parameters.applianceUrl` | Conjur Appliance URL | `https://myorg.conjur.com` |
-| `spec.parameters.authnId` | Type and service ID of desired Conjur authenticator | `authn-jwt/service-id` |
-| `spec.parameters.conjur.org/configurationVersion` | Conjur CSI Provider configuration version | `0.2.0` |
-| `spec.parameters.identity` | Conjur identity used during authentication and authorization (Optional. Only used when `token-app-property` authenticator field is not used.) | `botApp` |
-| `spec.parameters.secrets` | Multiline string describing map of relative filepaths to Conjur variable IDs. NOTE: This parameter is ignored when `conjur.org/configurationVersion` is 0.2.0 or higher. Instead use application pod annotations. | <pre>- "relative/path/fileA.txt": "conjur/path/varA"<br>- "relative/path/fileB.txt": "conjur/path/varB"</pre> |
+| `spec.parameters.account` | Secrets Manager account used during authentication | `myAccount` |
+| `spec.parameters.applianceUrl` | Secrets Manager Appliance URL | `https://myorg.conjur.com` |
+| `spec.parameters.authnId` | Type and service ID of desired Secrets Manager authenticator | `authn-jwt/service-id` |
+| `spec.parameters.conjur.org/configurationVersion` | Secrets Manager CSI Provider configuration version | `0.2.0` |
+| `spec.parameters.identity` | Secrets Manager identity used during authentication and authorization (Optional. Only used when `token-app-property` authenticator field is not used.) | `botApp` |
+| `spec.parameters.secrets` | Multiline string describing map of relative filepaths to Secrets Manager variable IDs. NOTE: This parameter is ignored when `conjur.org/configurationVersion` is 0.2.0 or higher. Instead use application pod annotations. | <pre>- "relative/path/fileA.txt": "conjur/path/varA"<br>- "relative/path/fileB.txt": "conjur/path/varB"</pre> |
 | `spec.parameters.sslCertificate` | Conjur Appliance certificate | <pre>-----BEGIN CERTIFICATE-----<br>MIIDhDCCAmy...njemCrVXIWw==<br>-----END CERTIFICATE----- |
 
 ## Contributing
@@ -287,7 +287,7 @@ Our primary channel for support is through our CyberArk Commons community
 
 ## Code Maintainers
 
-CyberArk Conjur Team
+CyberArk Secrets Manager Team
 
 ## License
 
