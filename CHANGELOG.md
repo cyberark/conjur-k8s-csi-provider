@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Security
 - Updated Go dependencies
 - Use latest 3.x alpine base image
+
+### Changed
+- Updated documentation to align with Conjur Enterprise name change to Secrets Manager. (CNJR-10983)
  
 ## [0.2.4] - 2025-04-01
 
@@ -87,7 +90,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Initial release of Conjur Provider for Secrets Store CSI Driver
 
-[Unreleased]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/cyberark/conjur-k8s-csi-provider/compare/v0.2.1...v0.2.2
