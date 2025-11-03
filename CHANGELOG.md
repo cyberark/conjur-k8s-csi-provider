@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [0.2.6] - 2025-11-03
+
+### Security
+- Update Go to 1.25 (CONJSE-2067)
+
 ## [0.2.5] - 2025-07-03
 
 ### Security
