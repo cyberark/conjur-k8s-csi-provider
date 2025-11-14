@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [0.2.7] - 2025-11-13
+
+### Changed
+- Updated conjur-api-go to 0.13.9
+
 ## [0.2.6] - 2025-11-03
 
 ### Security

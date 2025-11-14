@@ -3,7 +3,7 @@ module github.com/cyberark/conjur-k8s-csi-provider
 go 1.25.3
 
 require (
-	github.com/cyberark/conjur-api-go v0.13.8 // version will be ignored by auto release process
+	github.com/cyberark/conjur-api-go v0.13.9 // version will be ignored by auto release process
 	github.com/cyberark/conjur-authn-k8s-client v0.26.8 // version will be ignored by auto release process
 	github.com/hashicorp/go-version v1.7.0
 	github.com/stretchr/testify v1.11.1
@@ -115,6 +115,6 @@ replace golang.org/x/net v0.25.0 => golang.org/x/net v0.33.0
 
 // Automated release process replaces
 // DO NOT EDIT: CHANGES TO THESE 2 LINES WILL BREAK AUTOMATED RELEASES
-replace github.com/cyberark/conjur-api-go => github.com/cyberark/conjur-api-go v0.12.9
+replace github.com/cyberark/conjur-api-go => github.com/cyberark/conjur-api-go v0.13.9
 
 replace github.com/cyberark/conjur-authn-k8s-client => github.com/cyberark/conjur-authn-k8s-client v0.26.4
