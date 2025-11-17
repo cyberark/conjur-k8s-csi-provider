@@ -117,4 +117,4 @@ replace golang.org/x/net v0.25.0 => golang.org/x/net v0.33.0
 // DO NOT EDIT: CHANGES TO THESE 2 LINES WILL BREAK AUTOMATED RELEASES
 replace github.com/cyberark/conjur-api-go => github.com/cyberark/conjur-api-go latest
 
-replace github.com/cyberark/conjur-authn-k8s-client => github.com/cyberark/conjur-authn-k8s-client v0.26.4
+replace github.com/cyberark/conjur-authn-k8s-client => github.com/cyberark/conjur-authn-k8s-client latest
