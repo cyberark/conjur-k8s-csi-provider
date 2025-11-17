@@ -8,7 +8,7 @@ of the license associated with each component.
 
 SECTION 1: Apache License 2.0
 
->>> github.com/cyberark/conjur-api-go/conjurapi-0.12.9
+>>> github.com/cyberark/conjur-api-go/conjurapi-0.13.9
 >>> github.com/cyberark/conjur-authn-k8s-client/pkg/log-0.26.4
 >>> github.com/go-logr/logr-1.4.3
 >>> github.com/go-openapi/jsonpointer-0.21.1
@@ -85,7 +85,7 @@ SECTION 6: MPL-2.0 License
 
 Apache License 2.0 is applicable to the following component(s).
 
->>> github.com/cyberark/conjur-api-go/conjurapi-0.12.9
+>>> github.com/cyberark/conjur-api-go/conjurapi-0.13.9
 
 
                                  Apache License
