@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [0.2.8] - 2026-04-10
+
+### Security
+- Upgrade `google.golang.org/grpc` to v1.79.3 to resolve CVE-2026-33186
+
 ## [0.2.7] - 2025-11-13
 
 ### Changed
@@ -31,7 +36,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Updated documentation to align with Conjur Enterprise name change to Secrets Manager. (CNJR-10983)
- 
+
 ## [0.2.4] - 2025-04-01
 
 ### Security
