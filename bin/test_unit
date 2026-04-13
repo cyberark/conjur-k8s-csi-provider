@@ -4,7 +4,7 @@ set -exo pipefail
 
 . bin/build_utils
 
-docker run --rm -v $(pwd):/conjur-k8s-csi-provider -w /conjur-k8s-csi-provider golang:1.25 bash -c 'set -o pipefail;
+docker run --rm -v $(pwd):/conjur-k8s-csi-provider -w /conjur-k8s-csi-provider golang:1.26.1 bash -c 'set -o pipefail;
            output_dir="./output";
            mkdir -p "$output_dir";
            go install github.com/afunix/gocov/gocov@latest;
