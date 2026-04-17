@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Security
 - Upgrade `google.golang.org/grpc` to v1.79.3 to resolve CVE-2026-33186
 - Upgrade `go.opentelemetry.io/otel` to v1.43 to resolve CVE-2026-33186. CNJR-13644
+- Update Go to 1.26. CNJR-13358
 
 ## [0.2.7] - 2025-11-13
 
