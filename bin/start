@@ -6,6 +6,7 @@ source bin/test_utils
 
 kind version >/dev/null || { echo "kind cli required"; exit 1; }
 export KIND_EXPERIMENTAL_DOCKER_NETWORK="kind-network"
+kind get clusters | grep -q "^kind$" && kind delete cluster
 kind create cluster
 
 if [[  "${CONTAINERIZED:-}" == "true" ]]; then
