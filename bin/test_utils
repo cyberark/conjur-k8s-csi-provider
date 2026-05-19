@@ -62,12 +62,18 @@ deploy_secrets_store_csi_driver() {
     --insecure-skip-tls-verify \
     --set "linux.providersDir=/var/run/secrets-store-csi-providers" \
     --set syncSecret.enabled="true" \
-    --set 'tokenRequests[0].audience=conjur'
+    --set 'tokenRequests[0].audience=conjur' || {
+      echo "--- CSI driver pod events ---"
+      $cli get events --namespace "$CSI_NAMESPACE" --sort-by='.lastTimestamp'
+      echo "--- CSI driver pod logs ---"
+      $cli logs --namespace "$CSI_NAMESPACE" --selector app=secrets-store-csi-driver --all-containers --tail=50 2>/dev/null || true
+      exit 1
+    }
 }
 
 deploy_conjur() {
   CONJUR_DATA_KEY="$(docker run --rm cyberark/conjur data-key generate)"
-  
+
   helm install conjur cyberark/conjur-oss \
     --insecure-skip-tls-verify \
     --namespace "$CONJUR_NAMESPACE" \
@@ -77,7 +83,13 @@ deploy_conjur() {
     --set "fullnameOverride=conjur-oss" \
     --set "authenticators=authn\,authn-jwt/kube" \
     --set "service.external.enabled=false" \
-    "$@"
+    "$@" || {
+      echo "--- Conjur pod events ---"
+      $cli get events --namespace "$CONJUR_NAMESPACE" --sort-by='.lastTimestamp'
+      echo "--- Conjur pod logs ---"
+      $cli logs --namespace "$CONJUR_NAMESPACE" --selector app=conjur-oss --all-containers --tail=50 2>/dev/null || true
+      exit 1
+    }
 
   # Create Conjur account
   created_account=$($cli exec deployment/conjur-oss --namespace "$CONJUR_NAMESPACE" --container=conjur-oss \

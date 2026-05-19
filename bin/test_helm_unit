@@ -7,6 +7,7 @@ build_helm_test_image
 
 echo "Running helm unit tests..."
 docker run --rm \
+  -u "$(id -u):$(id -g)" \
   -v "$PWD/helm/":/helm/ \
   conjur-k8s-csi-provider-helm-test-runner:latest \
-    helm unittest /helm/conjur-k8s-csi-provider
+    /helm/conjur-k8s-csi-provider
