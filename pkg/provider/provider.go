@@ -10,6 +10,7 @@ import (
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/conjur"
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/k8s"
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/logmessages"
+	sharedversion "github.com/cyberark/conjur-k8s-csi-provider/pkg/version"
 	"github.com/hashicorp/go-version"
 	"gopkg.in/yaml.v3"
 	"sigs.k8s.io/secrets-store-csi-driver/provider/v1alpha1"
@@ -45,7 +46,7 @@ func Version(ctx context.Context, req *v1alpha1.VersionRequest) (*v1alpha1.Versi
 	return &v1alpha1.VersionResponse{
 		Version:        req.GetVersion(),
 		RuntimeName:    providerName,
-		RuntimeVersion: ProviderVersion,
+		RuntimeVersion: sharedversion.ProviderVersion,
 	}, nil
 }
 

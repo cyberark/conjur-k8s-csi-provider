@@ -2,24 +2,35 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/cyberark/conjur-authn-k8s-client/pkg/log"
+	"github.com/cyberark/conjur-k8s-csi-provider/pkg/conjur"
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/logmessages"
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/provider"
+	sharedversion "github.com/cyberark/conjur-k8s-csi-provider/pkg/version"
 )
 
 func main() {
-	// Note: This will log even if the log level is set to "warn" or "error" since that's loaded after this
-	log.Info(logmessages.CKCP001, provider.FullVersionName)
-
-	exitCode := 0
-
 	healthPort := flag.Int("healthPort", provider.DefaultPort, "Port to expose Conjur Provider health server")
 	socketPath := flag.String("socketPath", provider.DefaultSocketPath, "Socket to expose Conjur Provider gRPC server")
+	versionFlag := flag.Bool("version", false, "Print version and exit")
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println(sharedversion.FullVersionName())
+		os.Exit(0)
+	}
+
+	conjur.SetTelemetryVersion(sharedversion.FullVersionName())
+
+	// Note: This will log even if the log level is set to "warn" or "error" since that's loaded after this
+	log.Info(logmessages.CKCP001, sharedversion.FullVersionName())
+
+	exitCode := 0
 
 	if logLevel, ok := os.LookupEnv("LOG_LEVEL"); ok {
 		switch logLevel {

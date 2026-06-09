@@ -10,9 +10,9 @@ docker run --rm -v $(pwd):/conjur-k8s-csi-provider -w /conjur-k8s-csi-provider g
            go install github.com/afunix/gocov/gocov@latest;
            go install github.com/AlekSi/gocov-xml@latest;
            go install github.com/jstemmer/go-junit-report/v2@latest;
-           go test -coverprofile="$output_dir/c.out" -coverpkg=$(go list ./... | grep -v '/cmd/' | paste -sd,) -v ./... \
-            -ldflags="-X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.ProviderVersion=$(version)' \
-            -X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.TagSuffix=$(git_tag_suffix)'" | tee "$output_dir/junit.output";
+           go test -coverprofile="$output_dir/c.out" -coverpkg=$(go list ./... | grep -v '/cmd/' | grep -v '/k8s' | paste -sd,) -v ./... \
+            -ldflags="-X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/version.ProviderVersion=$(version)' \
+            -X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/version.TagSuffix=$(git_tag_suffix)'" | tee "$output_dir/junit.output";
            exit_code=$?;
            echo "Tests finished - aggregating results...";
            cat "$output_dir/junit.output" | go-junit-report > "$output_dir/junit.xml";
