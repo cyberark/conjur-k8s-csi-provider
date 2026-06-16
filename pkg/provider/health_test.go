@@ -107,3 +107,14 @@ func TestNewHealthServer(t *testing.T) {
 		})
 	}
 }
+
+func TestNewHealthServer_PublicWrapper(t *testing.T) {
+	p := &ConjurProviderServer{
+		versionFunc: func(ctx context.Context, req *v1alpha1.VersionRequest) (*v1alpha1.VersionResponse, error) {
+			return &v1alpha1.VersionResponse{}, nil
+		},
+	}
+	h := NewHealthServer(p, DefaultPort+100)
+	assert.NotNil(t, h)
+	assert.Equal(t, DefaultPort+100, h.port)
+}

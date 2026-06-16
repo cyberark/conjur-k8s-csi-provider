@@ -326,6 +326,15 @@ func TestMount(t *testing.T) {
 	}
 }
 
+func TestMount_PublicWrapper(t *testing.T) {
+	req := &v1alpha1.MountRequest{
+		Attributes: "}invalid{",
+	}
+	resp, err := Mount(context.TODO(), req)
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "Failed to unmarshal attributes")
+}
+
 func TestVersion(t *testing.T) {
 	testCases := []struct {
 		description string

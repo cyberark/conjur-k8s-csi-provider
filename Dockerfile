@@ -21,8 +21,8 @@ RUN update-ca-certificates
 WORKDIR /conjur-k8s-csi-provider
 COPY . .
 RUN go build \
-    -ldflags="-X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.ProviderVersion=$VERSION' \
-      -X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/provider.TagSuffix=$TAG_SUFFIX'" \
+    -ldflags="-X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/version.ProviderVersion=$VERSION' \
+      -X 'github.com/cyberark/conjur-k8s-csi-provider/pkg/version.TagSuffix=$TAG_SUFFIX'" \
     -o /conjur-csi-provider \
     ./cmd/conjur-k8s-csi-provider/main.go
 

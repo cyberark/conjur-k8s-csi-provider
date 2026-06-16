@@ -2,4 +2,5 @@ FROM helmunittest/helm-unittest:latest
 
 USER root
 RUN apk add --no-cache bash bind-tools coreutils ncurses openssl
+ENV HELM_CACHE_HOME=/tmp/helm/cache
 USER 1000

@@ -9,6 +9,18 @@ import (
 	"github.com/cyberark/conjur-k8s-csi-provider/pkg/logmessages"
 )
 
+var telemetryData = conjurapi.NewTelemetry("Kubernetes CSI Provider", "idira-secretsmanager", "v0.0-dev", "Idira", "")
+
+var newClientFromJWT = func(config conjurapi.Config, telemetry conjurapi.Telemetry) (ConjurClient, error) {
+	return conjurapi.NewClientFromJwt(config, telemetry)
+}
+
+// SetTelemetryVersion sets the version sent in the Conjur telemetry header.
+func SetTelemetryVersion(version string) {
+	telemetryData = conjurapi.NewTelemetry("Kubernetes CSI Provider", "idira-secretsmanager", version, "Idira", "")
+}
+
+
 // ClientFactory returns an implementation of the Client interface given the
 // proper configuration values.
 type ClientFactory func(baseURL, authnID, account, identity, sslCert string) Client
@@ -47,7 +59,7 @@ func NewClient(baseURL, authnID, account, identity, sslCert string) Client {
 }
 
 func defaultClientFactory(config conjurapi.Config) (ConjurClient, error) {
-	return conjurapi.NewClientFromJwt(config)
+	return newClientFromJWT(config, telemetryData)
 }
 
 // GetSecrets authenticates with Conjur using the provided JWT and returns

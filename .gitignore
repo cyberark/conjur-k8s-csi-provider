@@ -2,6 +2,7 @@ build_ca_certificate
 output
 files
 helm-artifacts
+.idea
 
 # Generated policy files
 policy/authn-jwt.yaml

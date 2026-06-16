@@ -173,3 +173,31 @@ func TestGetSecrets(t *testing.T) {
 		})
 	}
 }
+
+func TestDefaultClientFactoryIncludesTelemetryVersion(t *testing.T) {
+	originalClientFactory := newClientFromJWT
+	originalTelemetryData := telemetryData
+	t.Cleanup(func() {
+		newClientFromJWT = originalClientFactory
+		telemetryData = originalTelemetryData
+	})
+
+	const expectedVersion = "v1.2.3-test"
+	SetTelemetryVersion(expectedVersion)
+
+	var capturedTelemetry conjurapi.Telemetry
+	newClientFromJWT = func(config conjurapi.Config, telemetry conjurapi.Telemetry) (ConjurClient, error) {
+		capturedTelemetry = telemetry
+		return &mockConjurClient{}, nil
+	}
+
+	_, err := defaultClientFactory(conjurapi.Config{})
+	if err != nil {
+		t.Fatalf("defaultClientFactory returned error: %v", err)
+	}
+
+	if capturedTelemetry.IntegrationVersion != expectedVersion {
+		t.Fatalf("expected telemetry integration version %q, got %q", expectedVersion, capturedTelemetry.IntegrationVersion)
+	}
+}
+
