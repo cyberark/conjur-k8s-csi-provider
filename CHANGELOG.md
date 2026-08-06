@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nothing should go in this section, please add to the latest unreleased version
   (and update the corresponding date), or add a new version.
 
+## [0.2.9] - 2026-08-06
+
+### Security
+- Upgrade `google.golang.org/grpc` to v1.82.1 to resolve Improper Authorization CVE
+
 ## [0.2.8] - 2026-04-10
 
 ### Security
